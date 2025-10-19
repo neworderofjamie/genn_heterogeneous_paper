@@ -37,7 +37,7 @@ def plot_lag(axis, time: float, num_neurons: int = 10):
                                               - neuron_spike_time_float[:num_half_rescale])))
     
     lag = np.column_stack((half_lag, half_rescale_lag))
-    axis.boxplot(lag)
+    axis.boxplot(lag, showfliers=False)
     axis.set_ylabel("Lag [ms]")
     axis.xaxis.grid(False)
     sns.despine(ax=axis)
@@ -79,12 +79,12 @@ def plot_rmse(axis, time: float, num_neurons: int = 10):
         half_rescale_rmse.append(np.sqrt(np.sum(np.square(v_half_rescale_scale - v_float[:,i])) / v_float.shape[0]))
 
     rmse = np.column_stack((half_rmse, half_rescale_rmse))
-    axis.boxplot(rmse)
+    axis.boxplot(rmse, showfliers=False)
     axis.set_ylabel("RMSE [mV]")
     axis.xaxis.grid(False)
     sns.despine(ax=axis)
 
-fig = plt.figure(frameon=False, figsize=(plot_settings.column_width, 4.0))
+fig = plt.figure(frameon=False, figsize=(plot_settings.column_width, 3.0))
 
 # Create outer gridspec with three columns
 gsp = gs.GridSpec(1, 2)
@@ -137,5 +137,8 @@ fig.align_ylabels([low_acc_lag_axis, low_rmse_lag_axis, high_acc_lag_axis, high_
 fig.legend([float_actor, half_actor, half_rescale_actor], ["Float", "Half-precision", "Rescaled half-precision"], 
            loc="lower center", ncol=3, frameon=False)
 
-fig.tight_layout(pad=0, rect=[0.0, 0.175, 1.0, 1.0])
+fig.tight_layout(pad=0, rect=[0.0, 0.1, 1.0, 1.0])
+if not plot_settings.presentation:
+    fig.savefig("../figures/single_neuron.pdf", dpi=600)
+
 plt.show()
