@@ -58,9 +58,12 @@ df = DataFrame({"rate": [float(s) for s in splits[0]],
                 "repeat": [int(s) for s in splits[3]],
                 "filename": data})
 
-lif_init = {"V": -58.0, "RefracTime": 0.0}
+lif_init = {"V": -65.0, "RefracTime": 0.0}
 lif_params = {"C": 0.25, "TauM": 10.0, "Vrest": -65.0, "Vreset": -65.0, "Vthresh" : -50.0,
               "Ioffset": 0.0, "TauRefrac": 2.0}
+lif_rescale_init = {"V": 0.0, "RefracTime": 0.0}
+lif_rescale_params = {"C": 3.75, "TauM": 10.0, "Vrest": 0.0, "Vreset": 0.0, "Vthresh" : 1.0,
+                      "Ioffset": 0.0, "TauRefrac": 2.0}
 cs_init = {"current": 0.0}
 
 # Loop through dt and time i.e. things that require seperate simulations
@@ -75,18 +78,22 @@ for (dt, time), df_group in df.groupby(["dt", "time"]):
     # Create neuron populations
     float_neuron_pop = model.add_neuron_population("FloatNeuron", num_neurons, "LIF", lif_params, lif_init)
     half_neuron_pop = model.add_neuron_population("HalfNeuron", num_neurons, lif_half, lif_params, lif_init)
+    half_rescale_neuron_pop = model.add_neuron_population("HalfRescaleNeuron", num_neurons, lif_half, lif_rescale_params, lif_rescale_init)
     float_neuron_pop.spike_recording_enabled = True
     half_neuron_pop.spike_recording_enabled = True
+    half_rescale_neuron_pop.spike_recording_enabled = True
 
     # Add current sources to deliver poisson input
     cs_params = {"weight": 87.8 / 1000.0, "tauSyn": 0.5, "numTimesteps": num_timesteps}
     float_cs = model.add_current_source("FloatCS", current_source, float_neuron_pop, cs_params, cs_init)
     half_cs = model.add_current_source("HalfCS", current_source, half_neuron_pop, cs_params, cs_init)
+    half_rescale_cs = model.add_current_source("HalfRescaleCS", current_source, half_rescale_neuron_pop, cs_params, cs_init)
 
     # Load poisson data and stack together
     poisson_data = np.vstack([np.load(f) for f in df_group["filename"]])
     assert(poisson_data.shape == (num_neurons, num_timesteps))
     half_cs.extra_global_params["numSpikes"].set_init_values(poisson_data.flatten())
+    half_rescale_cs.extra_global_params["numSpikes"].set_init_values(poisson_data.flatten())
     float_cs.extra_global_params["numSpikes"].set_init_values(poisson_data.flatten())
 
     model.build()
@@ -94,24 +101,32 @@ for (dt, time), df_group in df.groupby(["dt", "time"]):
 
     float_v = []
     half_v = []
+    half_rescale_v = []
     for t in range(num_timesteps):
         model.step_time()
         float_neuron_pop.vars["V"].pull_from_device()
         half_neuron_pop.vars["V"].pull_from_device()
+        half_rescale_neuron_pop.vars["V"].pull_from_device()
         float_v.append(float_neuron_pop.vars["V"].values)
         half_v.append(half_neuron_pop.vars["V"].values)
+        half_rescale_v.append(half_rescale_neuron_pop.vars["V"].values)
 
     # Stack voltages and save
     float_v = np.vstack(float_v)
     half_v = np.vstack(half_v)
+    half_rescale_v = np.vstack(half_rescale_v)
     np.save(f"v_float_{dt}_{time}.npy", float_v)
     np.save(f"v_half_{dt}_{time}.npy", half_v)
+    np.save(f"v_half_rescale_{dt}_{time}.npy", half_rescale_v)
 
     # Read spikes and save
     model.pull_recording_buffers_from_device()
     float_spike_times, float_spike_ids = float_neuron_pop.spike_recording_data[0]
     half_spike_times, half_spike_ids = half_neuron_pop.spike_recording_data[0]
+    half_rescale_spike_times, half_rescale_spike_ids = half_rescale_neuron_pop.spike_recording_data[0]
     np.save(f"spike_time_float_{dt}_{time}.npy", float_spike_times)
     np.save(f"spike_id_float_{dt}_{time}.npy", float_spike_ids)
     np.save(f"spike_time_half_{dt}_{time}.npy", half_spike_times)
     np.save(f"spike_id_half_{dt}_{time}.npy", half_spike_ids)
+    np.save(f"spike_time_half_rescale_{dt}_{time}.npy", half_rescale_spike_times)
+    np.save(f"spike_id_half_rescale_{dt}_{time}.npy", half_rescale_spike_ids)
