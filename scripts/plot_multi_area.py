@@ -165,7 +165,7 @@ plot_area("FEF", fef_1_9_axis, "chi_1_9")
 
 vertical = True 
 
-genn_data_path = path.join("chi_1_9", "genn_half_weight")
+genn_data_path = path.join("chi_1_9", "genn_half_rescale")
 nest_data_path = "chi_1_9"
 
 # Combine GeNN and NEST rates and plot split violin plot
