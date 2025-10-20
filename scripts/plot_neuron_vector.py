@@ -27,10 +27,14 @@ for d in devices:
 axis.set_xlabel("Number of neurons")
 axis.set_ylabel("Simulation time [s]")
 axis.xaxis.grid(False)
+axis.ticklabel_format(useOffset=False, style="plain") 
 sns.despine(ax=axis)
 
 fig.legend(actors, labels, loc="lower center", 
            ncol=len(devices), frameon=False)
 
 fig.tight_layout(pad=0, rect=[0.0, 0.175, 1.0, 1.0])
+if not plot_settings.presentation:
+    fig.savefig("../figures/vector_perf.pdf", dpi=600)
+
 plt.show()
