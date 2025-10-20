@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import matplotlib.lines as mlines
 import plot_settings
 import seaborn as sns
 
@@ -30,10 +31,12 @@ axis.xaxis.grid(False)
 axis.ticklabel_format(useOffset=False, style="plain") 
 sns.despine(ax=axis)
 
-fig.legend(actors, labels, loc="lower center", 
-           ncol=len(devices), frameon=False)
+assert len(actors) == 2
+fig.legend([actors[0], mlines.Line2D([],[], color="black"), actors[1], mlines.Line2D([],[], linestyle="--", color="black")],
+           [labels[0], "Single-precision", labels[1], "Half-precision vectorized"], 
+           loc="lower center", ncol=2, frameon=False)
 
-fig.tight_layout(pad=0, rect=[0.0, 0.175, 1.0, 1.0])
+fig.tight_layout(pad=0, rect=[0.0, 0.2, 1.0, 1.0])
 if not plot_settings.presentation:
     fig.savefig("../figures/vector_perf.pdf", dpi=600)
 
