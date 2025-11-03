@@ -170,7 +170,7 @@ with open(f"va_benchmark_perf.csv", "w") as csv_file:
            
     # Build configurations
     max_sparse = 200000
-    max_dense = 80000
+    max_dense = 60000
     configs = [(n, True) for n in range(20000, max_dense + 1, 20000)]
     configs += [(n, False) for n in range(20000, max_sparse + 1, 20000)]
     
