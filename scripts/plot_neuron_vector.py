@@ -1,3 +1,4 @@
+import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
 import plot_settings
@@ -5,36 +6,60 @@ import seaborn as sns
 
 from pandas import read_csv
 
-df = read_csv("hip_neuron_vector.csv", delimiter=",")
+neuron_df = read_csv("hip_neuron_vector.csv", delimiter=",")
+spike_prop_df = read_csv("hip_dense_vector.csv", delimiter=",")
 
-devices = df["Device"].unique()
+devices = neuron_df["Device"].unique()
+#assert devices == spike_prop_df["Device"].unique()
 
-fig, axis = plt.subplots(figsize=(plot_settings.column_width, 2.0))
+fig, axes = plt.subplots(1, 2, figsize=(plot_settings.double_column_width, 2.0))
 
 # Loop through devices
 actors = []
 labels = []
 for d in devices:
-    device_df = df[df["Device"] == d]
-    float_df = device_df[device_df["Data type"] == "float"]
-    half_df = device_df[device_df["Data type"] == "half"]
-
-    actor = axis.plot(float_df["Num neurons"], float_df["Total time"])[0]
-    axis.plot(half_df["Num neurons"], half_df["Total time"],
-              color=actor.get_color(), linestyle="--")
+    print(d)
+    
+    # Get neuron data
+    neuron_device_df = neuron_df[neuron_df["Device"] == d]
+    neuron_float_df = neuron_device_df[neuron_device_df["Data type"] == "float"]
+    neuron_half_df = neuron_device_df[neuron_device_df["Data type"] == "half"]
+    print(f"\tMax neuron speedup: {np.amax(neuron_float_df['Neuron time'].to_numpy() / neuron_half_df['Neuron time'].to_numpy())}")
+    
+    # Plot lines
+    actor = axes[0].plot(neuron_float_df["Num neurons"], neuron_float_df["Neuron time"])[0]
+    axes[0].plot(neuron_half_df["Num neurons"], neuron_half_df["Neuron time"],
+                 color=actor.get_color(), linestyle="--")
+    
+    # Get synapse data
+    spike_prop_device_df = spike_prop_df[spike_prop_df["Device"] == d]
+    spike_prop_float_df = spike_prop_device_df[spike_prop_device_df["Data type"] == "float"]
+    spike_prop_half_df = spike_prop_device_df[spike_prop_device_df["Data type"] == "half"]
+    print(f"\tMax spike propagation speedup: {np.amax(spike_prop_float_df['Presynaptic time'].to_numpy() / spike_prop_half_df['Presynaptic time'].to_numpy())}")
+    # Plot lines
+    axes[1].plot(spike_prop_float_df["Num neurons"], spike_prop_float_df["Presynaptic time"],
+                 color=actor.get_color())
+    axes[1].plot(spike_prop_half_df["Num neurons"], spike_prop_half_df["Presynaptic time"],
+                 color=actor.get_color(), linestyle="--")
+    
+    
+    
     actors.append(actor)
     labels.append(d)
 
-axis.set_xlabel("Number of neurons")
-axis.set_ylabel("Simulation time [s]")
-axis.xaxis.grid(False)
-axis.ticklabel_format(useOffset=False, style="plain") 
-sns.despine(ax=axis)
+axes[0].set_title("A", loc="left")
+axes[1].set_title("B", loc="left")
+for a in axes:
+    a.set_xlabel("Number of neurons")
+    a.set_ylabel("Kernel time [s]")
+    a.xaxis.grid(False)
+    a.ticklabel_format(useOffset=False, style="plain") 
+    sns.despine(ax=a)
 
 assert len(actors) == 2
-fig.legend([actors[0], mlines.Line2D([],[], color="black"), actors[1], mlines.Line2D([],[], linestyle="--", color="black")],
-           [labels[0], "Single-precision", labels[1], "Half-precision vectorized"], 
-           loc="lower center", ncol=2, frameon=False)
+fig.legend([actors[0], actors[1], mlines.Line2D([],[], color="black"), mlines.Line2D([],[], linestyle="--", color="black")],
+           [labels[0], labels[1], "Single-precision", "Half-precision vectorized"], 
+           loc="lower center", ncol=4, frameon=False)
 
 fig.tight_layout(pad=0, rect=[0.0, 0.2, 1.0, 1.0])
 if not plot_settings.presentation:

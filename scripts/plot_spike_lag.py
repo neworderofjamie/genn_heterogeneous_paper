@@ -9,7 +9,7 @@ def load_spikes(data_type: str, time: float):
     return (np.load(os.path.join("compare_neurons", f"spike_id_{data_type}_0.1_{time}.npy")),
             np.load(os.path.join("compare_neurons", f"spike_time_{data_type}_0.1_{time}.npy")))
 
-def plot_lag(axis, time: float, num_neurons: int = 10):
+def plot_lag(axis, time: float, half_colour, half_rescale_colour, num_neurons: int = 10):
     # Load data
     spike_id_float, spike_time_float = load_spikes("float", time)
     spike_id_half, spike_time_half = load_spikes("half", time)
@@ -37,8 +37,11 @@ def plot_lag(axis, time: float, num_neurons: int = 10):
                                               - neuron_spike_time_float[:num_half_rescale])))
     
     lag = np.column_stack((half_lag, half_rescale_lag))
-    axis.boxplot(lag, showfliers=False)
-    axis.set_ylabel("Lag [ms]")
+    bplot = axis.boxplot(lag, showfliers=False, patch_artist=True)
+    bplot["boxes"][0].set_facecolor(half_colour)
+    bplot["boxes"][1].set_facecolor(half_rescale_colour)
+    bplot["medians"][0].set_color("black")
+    bplot["medians"][1].set_color("black")
     axis.xaxis.grid(False)
     sns.despine(ax=axis)
 
@@ -55,13 +58,11 @@ def plot_voltage(axis, time: float, neuron: int = 0):
     half_actor = axis.plot(t, v_half[:,neuron], alpha=0.5)[0]
     half_rescale_actor = axis.plot(t, (v_half_rescale[:,neuron] * 15.0) - 65.0, 
                                    alpha=0.5)[0]
-    axis.set_ylabel("Membrane voltage [mV]")
-
     axis.xaxis.grid(False)
     sns.despine(ax=axis)
     return float_actor, half_actor, half_rescale_actor
 
-def plot_rmse(axis, time: float, num_neurons: int = 10):
+def plot_rmse(axis, time: float, half_colour, half_rescale_colour, num_neurons: int = 10):
     v_float = np.load(os.path.join("compare_neurons", f"v_float_0.1_{time}.npy"))
     v_half = np.load(os.path.join("compare_neurons", f"v_half_0.1_{time}.npy"))
     v_half_rescale = np.load(os.path.join("compare_neurons", f"v_half_rescale_0.1_{time}.npy"))
@@ -79,65 +80,77 @@ def plot_rmse(axis, time: float, num_neurons: int = 10):
         half_rescale_rmse.append(np.sqrt(np.sum(np.square(v_half_rescale_scale - v_float[:,i])) / v_float.shape[0]))
 
     rmse = np.column_stack((half_rmse, half_rescale_rmse))
-    axis.boxplot(rmse, showfliers=False)
-    axis.set_ylabel("RMSE [mV]")
+    bplot = axis.boxplot(rmse, showfliers=False, patch_artist=True)
+    bplot["boxes"][0].set_facecolor(half_colour)
+    bplot["boxes"][1].set_facecolor(half_rescale_colour)
+    bplot["medians"][0].set_color("black")
+    bplot["medians"][1].set_color("black")
     axis.xaxis.grid(False)
     sns.despine(ax=axis)
 
-fig = plt.figure(frameon=False, figsize=(plot_settings.column_width, 3.0))
+fig = plt.figure(frameon=False, figsize=(plot_settings.double_column_width, 2.0))
 
-# Create outer gridspec with three columns
-gsp = gs.GridSpec(1, 2)
+# Create outer gridspec with four columns
+gsp = gs.GridSpec(1, 3)
 
 # Create two sub-gridspecs to divide these columns into gridspecs for voltage traces and box plots
-voltage_gsp = gs.GridSpecFromSubplotSpec(2, 1, subplot_spec=gsp[0], hspace=0.3)
-boxplot_gsp = gs.GridSpecFromSubplotSpec(4, 1, subplot_spec=gsp[1], hspace=0.3)
+boxplot_gsp = gs.GridSpecFromSubplotSpec(2, 2, subplot_spec=gsp[2], hspace=0.3)
 
 # Create axes within voltage gridspec
-low_rate_v_axis = plt.Subplot(fig, voltage_gsp[0])
-high_rate_v_axis = plt.Subplot(fig, voltage_gsp[1])
+low_rate_v_axis = plt.Subplot(fig, gsp[0])
+high_rate_v_axis = plt.Subplot(fig, gsp[1])
 
 # Create axes within violin plot gridspec
-low_acc_lag_axis = plt.Subplot(fig, boxplot_gsp[0])
-low_rmse_lag_axis = plt.Subplot(fig, boxplot_gsp[1])
-high_acc_lag_axis = plt.Subplot(fig, boxplot_gsp[2])
-high_rmse_lag_axis = plt.Subplot(fig, boxplot_gsp[3])
+low_acc_lag_axis = plt.Subplot(fig, boxplot_gsp[0,0])
+low_rmse_lag_axis = plt.Subplot(fig, boxplot_gsp[1,0])
+high_acc_lag_axis = plt.Subplot(fig, boxplot_gsp[0,1])
+high_rmse_lag_axis = plt.Subplot(fig, boxplot_gsp[1,1])
 
 # Add axes
 fig.add_subplot(low_rate_v_axis)
-fig.add_subplot(high_rate_v_axis)
+fig.add_subplot(high_rate_v_axis, sharey=low_rate_v_axis)
 fig.add_subplot(low_acc_lag_axis)
-fig.add_subplot(low_rmse_lag_axis)
-fig.add_subplot(high_acc_lag_axis)
-fig.add_subplot(high_rmse_lag_axis)
+fig.add_subplot(low_rmse_lag_axis, sharex=low_acc_lag_axis)
+fig.add_subplot(high_acc_lag_axis, sharey=low_acc_lag_axis)
+fig.add_subplot(high_rmse_lag_axis, sharex=high_acc_lag_axis, sharey=low_acc_lag_axis)
 
 float_actor, half_actor, half_rescale_actor = plot_voltage(low_rate_v_axis, 16000.0)
 plot_voltage(high_rate_v_axis, 4000.0)
 low_rate_v_axis.set_xlim((4800.0, 5000.0))
 high_rate_v_axis.set_xlim((1800.0, 2000.0))
 
-plot_lag(low_acc_lag_axis, 16000.0)
-plot_lag(high_acc_lag_axis, 4000.0)
-plot_rmse(low_rmse_lag_axis, 16000.0)
-plot_rmse(high_rmse_lag_axis, 4000.0)
+plot_lag(low_acc_lag_axis, 16000.0, half_actor.get_color(), half_rescale_actor.get_color())
+plot_lag(high_acc_lag_axis, 4000.0, half_actor.get_color(), half_rescale_actor.get_color())
+plot_rmse(low_rmse_lag_axis, 16000.0, half_actor.get_color(), half_rescale_actor.get_color())
+plot_rmse(high_rmse_lag_axis, 4000.0, half_actor.get_color(), half_rescale_actor.get_color())
 
 low_rate_v_axis.set_title("A", loc="left")
 high_rate_v_axis.set_title("B", loc="left")
 low_acc_lag_axis.set_title("C", loc="left")
-low_rmse_lag_axis.set_title("D", loc="left")
-high_acc_lag_axis.set_title("E", loc="left")
+low_rmse_lag_axis.set_title("E", loc="left")
+high_acc_lag_axis.set_title("D", loc="left")
 high_rmse_lag_axis.set_title("F", loc="left")
 
-low_acc_lag_axis.set_xticks([])
-low_rmse_lag_axis.set_xticks([])
-high_acc_lag_axis.set_xticks([])
-high_rmse_lag_axis.set_xticklabels(["Half-precision", "Half-precision\nrescaled"])
+# Label axes
+low_acc_lag_axis.set_ylabel("Lag [ms]")
+low_rmse_lag_axis.set_ylabel("RMSE [mV]")
+low_rate_v_axis.set_ylabel("Membrane voltage [mV]")
 
-fig.align_ylabels([low_acc_lag_axis, low_rmse_lag_axis, high_acc_lag_axis, high_rmse_lag_axis])
+# Hide ticks
+plt.setp(low_acc_lag_axis.get_xticklabels(), visible=False)
+plt.setp(high_acc_lag_axis.get_xticklabels(), visible=False)
+plt.setp(low_rmse_lag_axis.get_xticklabels(), visible=False)
+plt.setp(high_rmse_lag_axis.get_xticklabels(), visible=False)
+
+plt.setp(high_rate_v_axis.get_yticklabels(), visible=False)
+plt.setp(high_acc_lag_axis.get_yticklabels(), visible=False)
+plt.setp(high_rmse_lag_axis.get_yticklabels(), visible=False)
+
+fig.align_ylabels([low_acc_lag_axis, low_rmse_lag_axis])
 fig.legend([float_actor, half_actor, half_rescale_actor], ["Float", "Half-precision", "Rescaled half-precision"], 
            loc="lower center", ncol=3, frameon=False)
 
-fig.tight_layout(pad=0, rect=[0.0, 0.1, 1.0, 1.0])
+fig.tight_layout(pad=0, rect=[0.0, 0.15, 1.0, 1.0])
 if not plot_settings.presentation:
     fig.savefig("../figures/single_neuron.pdf", dpi=600)
 
