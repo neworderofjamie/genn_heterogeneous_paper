@@ -7,6 +7,11 @@ import seaborn as sns
 from glob import glob
 from json import load
 
+def data_to_axis(axis, x):
+    point = (x, 0)
+    trans = axis.transData.transform(point)
+    return axis.transAxes.inverted().transform(trans)[0]
+
 def plot_stacked_bar(axis, sort_index, ref_labels,  
                      ref_heights, labels, heights):
     # Numpify heights
@@ -17,7 +22,8 @@ def plot_stacked_bar(axis, sort_index, ref_labels,
     labels = [labels[o] for o in order]
 
     num_bars = len(prepare_times_s)
-    bar_x = np.arange(num_bars)
+    bar_x = np.arange(0, num_bars * 2, 2)
+    bar_x + 2
     bottom = np.zeros(num_bars)
     
     actors = []
@@ -25,11 +31,22 @@ def plot_stacked_bar(axis, sort_index, ref_labels,
         actors.append(axis.bar(bar_x, h, bottom=bottom))
         bottom += h
     
-    ref_bar_x = np.arange(num_bars, num_bars + len(ref_heights))
+    ref_bar_x = np.arange(len(ref_heights))
+    ref_bar_x += ((num_bars - 1) * 2) + 1
     actors.append(axis.bar(ref_bar_x, ref_heights))
     
-    axis.set_xticks(np.concatenate((bar_x, ref_bar_x)))
+    full_bar_x = np.concatenate((bar_x, ref_bar_x))
+    axis.set_xticks(full_bar_x)
     axis.set_xticklabels(labels + ref_labels)
+    return actors, full_bar_x
+
+def plot_inset_stacked_bar(axis, heights):
+    bottom = 0
+    actors = []
+    pal = sns.color_palette()
+    for i, h in enumerate(heights):
+        actors.append(axis.bar([0.0], h, bottom=bottom))
+        bottom += h
     return actors
 
 # Loop through parameter files
@@ -58,11 +75,11 @@ for f in glob(path.join("multiarea_logs", "custom_params*")):
 
     # Build labels
     if procedural_connectivity:
-        labels.append("Procedural")
+        labels.append("GeNN\nProcedural")
     elif half_weights and not half_neurons and not normalize_v:
-        labels.append("Half-precision\nweights")
+        labels.append("GeNN\nHalf-precision\nweights")
     elif half_weights and half_neurons and normalize_v:
-        labels.append("Half-precision")
+        labels.append("GeNN\nHalf-precision")
     else:
         assert False
 
@@ -91,25 +108,38 @@ for f in glob(path.join("multiarea_logs", "custom_params*")):
 
 # Numpify
 
-fig, axis = plt.subplots(figsize=(plot_settings.column_width, 2.0))
+fig, axis = plt.subplots(figsize=(plot_settings.double_column_width, 2.0))
 
-# Plot stacked bar
+# Plot main stacked bar
 nest_gpu = 15.3 * (baseline_time / 1000.0)
 nest_cpu = 47.9 * (baseline_time / 1000.0)
-actors = plot_stacked_bar(axis, 3, ["NEST GPU\nCluster", "NEST\nCluster"], [nest_gpu, nest_cpu],
-                          labels,
-                          [prepare_times_s, init_times_s, neuron_update_times_s,
-                           presynaptic_update_times_s, overhead_times_s])
+actors, bar_x = plot_stacked_bar(axis, 3, ["NEST GPU\nCluster", "NEST\nCluster"], [nest_gpu, nest_cpu],
+                                 labels,
+                                 [prepare_times_s, init_times_s, neuron_update_times_s,
+                                  presynaptic_update_times_s, overhead_times_s])
+axis.set_xlim((-2, bar_x[-1] + 1))
 
-
-
+for i, _ in enumerate(prepare_times_s):
+    x0 = data_to_axis(axis, bar_x[i])
+    inset_axis = axis.inset_axes([x0 - 0.14, 0.1, 0.07, 0.5])
+    
+    plot_inset_stacked_bar(inset_axis, [prepare_times_s[i], init_times_s[i], 
+                           neuron_update_times_s[i], 
+                            presynaptic_update_times_s[i]])
+    
+    inset_axis.set_ylim((0, 400))
+    inset_axis.set_ylabel("Time [s]")
+    plt.setp(inset_axis.get_xticklabels(), visible=False)
+    
+    
+#
 axis.set_ylabel("Time [s]")
 sns.despine(ax=axis, left=True, bottom=True)
 axis.xaxis.grid(False)
 
 fig.legend(actors, ["Preparation", "Initialisation", "Neuron update",
                     "Presynaptic update", "Overhead", "NEST simulation"],
-           loc="lower center", ncol=3, frameon=False)
+           loc="lower center", ncol=6, frameon=False)
 
 fig.tight_layout(pad=0, rect=[0.0, 0.175, 1.0, 1.0])
 if not plot_settings.presentation:
