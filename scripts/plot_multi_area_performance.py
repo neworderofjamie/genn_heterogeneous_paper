@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import matplotlib.lines as lines
 import numpy as np
 from os import path
 import plot_settings
@@ -7,10 +8,10 @@ import seaborn as sns
 from glob import glob
 from json import load
 
-def data_to_axis(axis, x):
-    point = (x, 0)
+def data_to_axis(axis, x, y):
+    point = (x, y)
     trans = axis.transData.transform(point)
-    return axis.transAxes.inverted().transform(trans)[0]
+    return axis.transAxes.inverted().transform(trans)
 
 def plot_stacked_bar(axis, sort_index, ref_labels,  
                      ref_heights, labels, heights):
@@ -120,18 +121,22 @@ actors, bar_x = plot_stacked_bar(axis, 3, ["NEST GPU\nCluster", "NEST\nCluster"]
 axis.set_xlim((-2, bar_x[-1] + 1))
 
 for i, _ in enumerate(prepare_times_s):
-    x0 = data_to_axis(axis, bar_x[i])
+    x0, y = data_to_axis(axis, bar_x[i], 400)
     inset_axis = axis.inset_axes([x0 - 0.14, 0.1, 0.07, 0.5])
     
     plot_inset_stacked_bar(inset_axis, [prepare_times_s[i], init_times_s[i], 
-                           neuron_update_times_s[i], 
-                            presynaptic_update_times_s[i]])
+                           neuron_update_times_s[i], presynaptic_update_times_s[i]])
     
     inset_axis.set_ylim((0, 400))
     inset_axis.set_ylabel("Time [s]")
     plt.setp(inset_axis.get_xticklabels(), visible=False)
-    
-    
+
+    axis.add_line(lines.Line2D([x0 - 0.04, x0 - 0.075], [0.01, 0.1],
+                               lw=0.5, color="black", axes=axis,
+                               transform=axis.transAxes))
+    axis.add_line(lines.Line2D([x0 - 0.04, x0 - 0.075], [y, 0.6],
+                               lw=0.5, color="black", axes=axis,
+                               transform=axis.transAxes))
 #
 axis.set_ylabel("Time [s]")
 sns.despine(ax=axis, left=True, bottom=True)
