@@ -80,7 +80,7 @@ for f in glob(path.join("multiarea_logs", "custom_params*")):
     elif half_weights and not half_neurons and not normalize_v:
         labels.append("GeNN\nHalf-precision\nweights")
     elif half_weights and half_neurons and normalize_v:
-        labels.append("GeNN\nHalf-precision")
+        labels.append("GeNN\nHalf-precision\nweights & neurons")
     else:
         assert False
     label_one_line = labels[-1].replace("\n", " ")
@@ -106,7 +106,7 @@ for f in glob(path.join("multiarea_logs", "custom_params*")):
                                       / (1000.0 * sim_scale))
     
     sim_s = log["time_simulate"] / sim_scale
-    print(f"\tPrepare: {prepare_times_s[-1]}, Init: {init_times_s[-1]}, Neuron update: {neuron_update_times_s[-1]}, Presynaptic update: {presynaptic_update_times_s[-1]}")
+    print(f"\tPrepare: {prepare_times_s[-1]}, Init: {init_times_s[-1]}, Neuron update: {neuron_update_times_s[-1]}, Presynaptic update: {presynaptic_update_times_s[-1]}, Total: {sim_s}")
     overhead_times_s.append(sim_s - neuron_update_times_s[-1]
                             - presynaptic_update_times_s[-1])
 
@@ -122,7 +122,8 @@ actors, bar_x, order = plot_stacked_bar(axis, 3, ["NEST GPU\nCluster", "NEST\nCl
                                         [prepare_times_s, init_times_s, neuron_update_times_s,
                                          presynaptic_update_times_s, overhead_times_s])
 axis.set_xlim((-1.6, bar_x[-1] + 1))
-
+print(f"NEST CPU\n\tTotal: {nest_cpu}")
+print(f"NEST GPU\n\tTotal: {nest_gpu}")
 for i, o in enumerate(order):
     x0, y = data_to_axis(axis, bar_x[i], 400)
     inset_axis = axis.inset_axes([x0 - 0.12, 0.1, 0.07, 0.5])
