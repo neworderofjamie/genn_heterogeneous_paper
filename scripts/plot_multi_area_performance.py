@@ -29,12 +29,12 @@ def plot_stacked_bar(axis, sort_index, ref_labels,
     
     actors = []
     for h in heights:
-        actors.append(axis.bar(bar_x, h, bottom=bottom, linewidth=0))
+        actors.append(axis.bar(bar_x, h, bottom=bottom, linewidth=0, width=0.6))
         bottom += h
     
     ref_bar_x = np.arange(len(ref_heights))
     ref_bar_x += ((num_bars - 1) * 2) + 1
-    actors.append(axis.bar(ref_bar_x, ref_heights, linewidth=0))
+    actors.append(axis.bar(ref_bar_x, ref_heights, linewidth=0, width=0.6))
     
     full_bar_x = np.concatenate((bar_x, ref_bar_x))
     axis.set_xticks(full_bar_x)
@@ -62,7 +62,7 @@ overhead_times_s = []
 for f in glob(path.join("multiarea_logs", "custom_params*")):
     # Extract hash
     hash = path.split(f)[1].split("_")[-1]
-    print(hash)
+    
 
     # Read params JSON
     with open(f, "r") as f:
@@ -83,6 +83,8 @@ for f in glob(path.join("multiarea_logs", "custom_params*")):
         labels.append("GeNN\nHalf-precision")
     else:
         assert False
+    label_one_line = labels[-1].replace("\n", " ")
+    print(f"{hash}: {label_one_line}")
 
     # Read log JSON
     with open(path.join("multiarea_logs", f"{hash}_logfile"), "r") as f:
@@ -104,6 +106,7 @@ for f in glob(path.join("multiarea_logs", "custom_params*")):
                                       / (1000.0 * sim_scale))
     
     sim_s = log["time_simulate"] / sim_scale
+    print(f"\tPrepare: {prepare_times_s[-1]}, Init: {init_times_s[-1]}, Neuron update: {neuron_update_times_s[-1]}, Presynaptic update: {presynaptic_update_times_s[-1]}")
     overhead_times_s.append(sim_s - neuron_update_times_s[-1]
                             - presynaptic_update_times_s[-1])
 
@@ -118,23 +121,25 @@ actors, bar_x = plot_stacked_bar(axis, 3, ["NEST GPU\nCluster", "NEST\nCluster"]
                                  labels,
                                  [prepare_times_s, init_times_s, neuron_update_times_s,
                                   presynaptic_update_times_s, overhead_times_s])
-axis.set_xlim((-2, bar_x[-1] + 1))
+axis.set_xlim((-1.6, bar_x[-1] + 1))
 
 for i, _ in enumerate(prepare_times_s):
     x0, y = data_to_axis(axis, bar_x[i], 400)
-    inset_axis = axis.inset_axes([x0 - 0.14, 0.1, 0.07, 0.5])
+    inset_axis = axis.inset_axes([x0 - 0.12, 0.1, 0.07, 0.5])
     
     plot_inset_stacked_bar(inset_axis, [prepare_times_s[i], init_times_s[i], 
                            neuron_update_times_s[i], presynaptic_update_times_s[i]])
     
     inset_axis.set_ylim((0, 400))
     inset_axis.set_ylabel("Time [s]")
+    inset_axis.xaxis.grid(False)
+    inset_axis.yaxis.grid(False)
     plt.setp(inset_axis.get_xticklabels(), visible=False)
 
-    axis.add_line(lines.Line2D([x0 - 0.04, x0 - 0.075], [0.01, 0.1],
+    axis.add_line(lines.Line2D([x0 - 0.035, x0 - 0.049], [0.005, 0.1],
                                lw=0.5, color="black", axes=axis,
                                transform=axis.transAxes))
-    axis.add_line(lines.Line2D([x0 - 0.04, x0 - 0.075], [y, 0.6],
+    axis.add_line(lines.Line2D([x0 - 0.035, x0 - 0.049], [y, 0.6],
                                lw=0.5, color="black", axes=axis,
                                transform=axis.transAxes))
 #
