@@ -39,7 +39,7 @@ def plot_stacked_bar(axis, sort_index, ref_labels,
     full_bar_x = np.concatenate((bar_x, ref_bar_x))
     axis.set_xticks(full_bar_x)
     axis.set_xticklabels(labels + ref_labels)
-    return actors, full_bar_x
+    return actors, full_bar_x, order
 
 def plot_inset_stacked_bar(axis, heights):
     bottom = 0
@@ -117,18 +117,18 @@ fig, axis = plt.subplots(figsize=(plot_settings.double_column_width, 2.0))
 # Plot main stacked bar
 nest_gpu = 15.3 * (baseline_time / 1000.0)
 nest_cpu = 47.9 * (baseline_time / 1000.0)
-actors, bar_x = plot_stacked_bar(axis, 3, ["NEST GPU\nCluster", "NEST\nCluster"], [nest_gpu, nest_cpu],
-                                 labels,
-                                 [prepare_times_s, init_times_s, neuron_update_times_s,
-                                  presynaptic_update_times_s, overhead_times_s])
+actors, bar_x, order = plot_stacked_bar(axis, 3, ["NEST GPU\nCluster", "NEST\nCluster"], [nest_gpu, nest_cpu],
+                                        labels,
+                                        [prepare_times_s, init_times_s, neuron_update_times_s,
+                                         presynaptic_update_times_s, overhead_times_s])
 axis.set_xlim((-1.6, bar_x[-1] + 1))
 
-for i, _ in enumerate(prepare_times_s):
+for i, o in enumerate(order):
     x0, y = data_to_axis(axis, bar_x[i], 400)
     inset_axis = axis.inset_axes([x0 - 0.12, 0.1, 0.07, 0.5])
     
-    plot_inset_stacked_bar(inset_axis, [prepare_times_s[i], init_times_s[i], 
-                           neuron_update_times_s[i], presynaptic_update_times_s[i]])
+    plot_inset_stacked_bar(inset_axis, [prepare_times_s[o], init_times_s[o], 
+                           neuron_update_times_s[o], presynaptic_update_times_s[o]])
     
     inset_axis.set_ylim((0, 400))
     inset_axis.set_ylabel("Time [s]")
