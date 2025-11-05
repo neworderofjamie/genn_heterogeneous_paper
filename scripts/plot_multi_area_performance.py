@@ -29,12 +29,12 @@ def plot_stacked_bar(axis, sort_index, ref_labels,
     
     actors = []
     for h in heights:
-        actors.append(axis.bar(bar_x, h, bottom=bottom))
+        actors.append(axis.bar(bar_x, h, bottom=bottom, linewidth=0))
         bottom += h
     
     ref_bar_x = np.arange(len(ref_heights))
     ref_bar_x += ((num_bars - 1) * 2) + 1
-    actors.append(axis.bar(ref_bar_x, ref_heights))
+    actors.append(axis.bar(ref_bar_x, ref_heights, linewidth=0))
     
     full_bar_x = np.concatenate((bar_x, ref_bar_x))
     axis.set_xticks(full_bar_x)
@@ -46,7 +46,7 @@ def plot_inset_stacked_bar(axis, heights):
     actors = []
     pal = sns.color_palette()
     for i, h in enumerate(heights):
-        actors.append(axis.bar([0.0], h, bottom=bottom))
+        actors.append(axis.bar([0.0], h, bottom=bottom, linewidth=0))
         bottom += h
     return actors
 
