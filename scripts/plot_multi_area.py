@@ -9,6 +9,7 @@ import numpy as np
 import seaborn as sns
 from copy import copy
 from os import path
+from scipy.stats import entropy
 from six import iteritems
 from sys import argv
 import plot_settings
@@ -130,34 +131,57 @@ def plot_violin(stat_file_stem, genn_data_path, nest_data_path, axis, vertical, 
         axis.set_xlabel(label)
         axis.set_xlim(lim)
 
-def calc_kl_divergence(data_path, prefix, populations):
-    # Loop through populations
-    kls = []
-    for p in populations:
-        with open(path.join(data_path, prefix + "_" + p + ".npy"), "rb") as f:
-            bin_x = np.load(f)
-            ground_truth_hist = np.load(f)
-            comp_hist = np.load(f)
-
-        # Normalize histograms
-        bin_width = bin_x[1] - bin_x[0]
-        ground_truth_hist = np.divide(ground_truth_hist, np.sum(ground_truth_hist) / bin_width, dtype="float")
-        comp_hist = np.divide(comp_hist, np.sum(comp_hist) / bin_width, dtype="float")
-        
-        # Mask out bins with no data
-        mask = (comp_hist > 1.0E-15)
-        kls.append(entropy(ground_truth_hist[mask], comp_hist[mask]))
+def plot_kl_divergence(data_path, stat, axis):
+    populations = ["23E", "23I", "4E", "4I", "5E", "5I", "6E", "6I"]
     
-    # Return KL divergences as array
-    return np.asarray(kls)
+    # Position bars
+    kl_bar_width = 0.8
+    kl_bar_pad = 0.2
+    kl_bar_x = np.arange(0.0, len(populations) * (kl_bar_width + kl_bar_pad), kl_bar_width + kl_bar_pad)
 
-kl_permutations = ["nest_seed_1", "nest_seed_2", "nest_seed_3",
-                   "seed_1_seed_2", "seed_1_seed_3", "seed_2_seed_3"]
+    # Plot bars
+    permutation_actors = []
 
-kl_permutation_names = ["GeNN vs NEST", "GeNN vs GeNN"]
+    errorbar_kwargs = {"linestyle": "None", "marker": "o", "markersize": 1.0, "zorder": 10,
+                       "capsize": 5.0, "elinewidth": 0.75, "capthick": 0.75, "clip_on": False}
+    
+    # Loop through permutations
+    kl_div = []
+    for i, perm in enumerate(["nest_seed_1", "nest_seed_2", "nest_seed_3",
+                              "seed_1_seed_2", "seed_1_seed_3", "seed_2_seed_3"]):
+        # Loop through populations
+        kls = []
+        for pop in populations:
+            with open(path.join(data_path, f"{perm}_{stat}_{pop}.npy"), "rb") as f:
+                bin_x = np.load(f)
+                ground_truth_hist = np.load(f)
+                comp_hist = np.load(f)
 
-# Population names
-kl_populations = ["23E", "23I", "4E", "4I", "5E", "5I", "6E", "6I"]
+            # Normalize histograms
+            bin_width = bin_x[1] - bin_x[0]
+            ground_truth_hist = np.divide(ground_truth_hist, np.sum(ground_truth_hist) / bin_width, dtype="float")
+            comp_hist = np.divide(comp_hist, np.sum(comp_hist) / bin_width, dtype="float")
+            
+            # Mask out bins with no data
+            mask = (comp_hist > 1.0E-15)
+            kls.append(entropy(ground_truth_hist[mask], comp_hist[mask]))
+
+        kl_div.append(np.asarray(kls))
+    
+    kl_div = np.vstack(kl_div)
+    kl_mean = [np.mean(kl_div[:3,:], axis=0), np.mean(kl_div[3:,:], axis=0)]
+    kl_std = [np.std(kl_div[:3,:], axis=0), np.std(kl_div[3:,:], axis=0)]
+
+    # Draw rate KL-divergence bars
+    for i, (m, s) in enumerate(zip(kl_mean, kl_std)):
+        permutation_actors.append(axis.errorbar((kl_bar_x * 2.0) + (i * kl_bar_width), m, 
+                                                yerr=s, **errorbar_kwargs)[2])
+        #max_axis_value[0, j] = np.amax(m + s) + 0.0005
+    
+    remove_junk(axis)
+    axis.yaxis.grid(False)
+    axis.set_ylabel("$D_{KL}$")
+
 
 # Create plot
 fig = plt.figure(frameon=False, figsize=(plot_settings.double_column_width, 4.0))
@@ -167,7 +191,7 @@ gsp = gs.GridSpec(1, 3)
 
 # Create two sub-gridspecs to divide these columns into gridspecs for raster and violin plots with an axis for each regime
 raster_gsp = gs.GridSpecFromSubplotSpec(1, 3, subplot_spec=gsp[0:2], hspace=0.3)
-violin_gsp = gs.GridSpecFromSubplotSpec(8, 1, subplot_spec=gsp[2], hspace=0.3)
+violin_gsp = gs.GridSpecFromSubplotSpec(6, 1, subplot_spec=gsp[2], hspace=0.3)
 
 # Create axes within outer gridspec
 v1_1_9_axis = plt.Subplot(fig, raster_gsp[0])
@@ -176,8 +200,13 @@ fef_1_9_axis = plt.Subplot(fig, raster_gsp[2])
 
 # Create axes within violin plot gridspec
 rate_1_9_violin_axis = plt.Subplot(fig, violin_gsp[0])
-corr_coeff_1_9_violin_axis = plt.Subplot(fig, violin_gsp[2])
-irregularity_1_9_violin_axis = plt.Subplot(fig, violin_gsp[4])
+corr_coeff_1_9_violin_axis = plt.Subplot(fig, violin_gsp[1])
+irregularity_1_9_violin_axis = plt.Subplot(fig, violin_gsp[2])
+
+rate_1_9_kl_axis = plt.Subplot(fig, violin_gsp[3])
+corr_coeff_1_9_kl_axis = plt.Subplot(fig, violin_gsp[4])
+irregularity_1_9_kl_axis = plt.Subplot(fig, violin_gsp[5])
+
 
 # Add axes
 fig.add_subplot(v1_1_9_axis)
@@ -186,6 +215,9 @@ fig.add_subplot(fef_1_9_axis)
 fig.add_subplot(rate_1_9_violin_axis)
 fig.add_subplot(corr_coeff_1_9_violin_axis)
 fig.add_subplot(irregularity_1_9_violin_axis)
+fig.add_subplot(rate_1_9_kl_axis)
+fig.add_subplot(corr_coeff_1_9_kl_axis)
+fig.add_subplot(irregularity_1_9_kl_axis)
 
 # Plot example GeNN raster plots
 recordings = np.load(path.join("chi_1_9", "genn_recordings.npz"))
@@ -200,21 +232,25 @@ nest_data_path = "chi_1_9"
 
 # Combine GeNN and NEST rates and plot split violin plot
 plot_violin("rates", genn_data_path, nest_data_path, rate_1_9_violin_axis, 
-            vertical, "Rate [spikes/s]", (-10.0, 150.0))
+            vertical, "Rate\n[spikes/s]", (-10.0, 150.0))
             
 # Combine GeNN and NEST correlation coefficients and plot split violin plot
 plot_violin("corr_coeff", genn_data_path, nest_data_path, corr_coeff_1_9_violin_axis, 
-            vertical, "Correlation coefficient", (-0.1, 0.6))
+            vertical, "Correlation\ncoefficient", (-0.1, 0.6))
 
 # Combine GeNN and NEST irregularity and plot split violin plot
 plot_violin("irregularity", genn_data_path, nest_data_path, irregularity_1_9_violin_axis, 
             vertical, "Irregularity", (-0.5, 2.5))
 
+# Plot KL divergences
+plot_kl_divergence(nest_data_path, "rates", rate_1_9_kl_axis)
+plot_kl_divergence(nest_data_path, "corr_coeff", corr_coeff_1_9_kl_axis)
+plot_kl_divergence(nest_data_path, "irregularity", irregularity_1_9_kl_axis)
+
 # Label axes
 v1_1_9_axis.set_title("A: V1", loc="left")
 v2_1_9_axis.set_title("B: V2", loc="left")
 fef_1_9_axis.set_title("C: FEF", loc="left")
-
 
 rate_1_9_violin_axis.set_title("D", loc="left")
 corr_coeff_1_9_violin_axis.set_title("E", loc="left")
@@ -228,6 +264,8 @@ irregularity_1_9_violin_axis.yaxis.set_minor_locator(MultipleLocator(1.0))
 plt.setp(rate_1_9_violin_axis.get_xticklabels(), visible=False)
 plt.setp(corr_coeff_1_9_violin_axis.get_xticklabels(), visible=False)
 plt.setp(irregularity_1_9_violin_axis.get_xticklabels(), visible=False)
+plt.setp(rate_1_9_kl_axis.get_xticklabels(), visible=False)
+plt.setp(corr_coeff_1_9_kl_axis.get_xticklabels(), visible=False)
 
 # Show figure legend with devices beneath figure
 pal = sns.color_palette()
