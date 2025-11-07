@@ -133,18 +133,7 @@ def plot_violin(stat_file_stem, genn_data_path, nest_data_path, axis, vertical, 
 
 def plot_kl_divergence(data_path, stat, axis):
     populations = ["23E", "23I", "4E", "4I", "5E", "5I", "6E", "6I"]
-    
-    # Position bars
-    kl_bar_width = 0.8
-    kl_bar_pad = 0.2
-    kl_bar_x = np.arange(0.0, len(populations) * (kl_bar_width + kl_bar_pad), kl_bar_width + kl_bar_pad)
 
-    # Plot bars
-    permutation_actors = []
-
-    errorbar_kwargs = {"linestyle": "None", "marker": "o", "markersize": 1.0, "zorder": 10,
-                       "capsize": 5.0, "elinewidth": 0.75, "capthick": 0.75, "clip_on": False}
-    
     # Loop through permutations
     kl_div = []
     for i, perm in enumerate(["nest_seed_1", "nest_seed_2", "nest_seed_3",
@@ -171,17 +160,27 @@ def plot_kl_divergence(data_path, stat, axis):
     kl_div = np.vstack(kl_div)
     kl_mean = [np.mean(kl_div[:3,:], axis=0), np.mean(kl_div[3:,:], axis=0)]
     kl_std = [np.std(kl_div[:3,:], axis=0), np.std(kl_div[3:,:], axis=0)]
+    
+    # Position bars
+    kl_bar_width = 0.8
+    kl_bar_pad = 0.2
+    kl_bar_x = np.arange(0.0, len(populations) * (kl_bar_width + kl_bar_pad), kl_bar_width + kl_bar_pad)
 
     # Draw rate KL-divergence bars
+    errorbar_kwargs = {"linestyle": "None", "marker": "o", "markersize": 1.0, "zorder": 10,
+                       "capsize": 5.0, "elinewidth": 0.75, "capthick": 0.75, "clip_on": False}
+    pal = sns.color_palette()
+    permutation_actors = []
     for i, (m, s) in enumerate(zip(kl_mean, kl_std)):
         permutation_actors.append(axis.errorbar((kl_bar_x * 2.0) + (i * kl_bar_width), m, 
-                                                yerr=s, **errorbar_kwargs)[2])
-        #max_axis_value[0, j] = np.amax(m + s) + 0.0005
-    
+                                                yerr=s, color=pal[2 + i], **errorbar_kwargs)[2])
+
+    axis.set_xticks((kl_bar_x * 2.0) + (0.5 * kl_bar_width))
+    axis.set_xticklabels(populations)
     remove_junk(axis)
     axis.yaxis.grid(False)
     axis.set_ylabel("$D_{KL}$")
-
+    return permutation_actors
 
 # Create plot
 fig = plt.figure(frameon=False, figsize=(plot_settings.double_column_width, 4.0))
@@ -190,8 +189,8 @@ fig = plt.figure(frameon=False, figsize=(plot_settings.double_column_width, 4.0)
 gsp = gs.GridSpec(1, 3)
 
 # Create two sub-gridspecs to divide these columns into gridspecs for raster and violin plots with an axis for each regime
-raster_gsp = gs.GridSpecFromSubplotSpec(1, 3, subplot_spec=gsp[0:2], hspace=0.3)
-violin_gsp = gs.GridSpecFromSubplotSpec(6, 1, subplot_spec=gsp[2], hspace=0.3)
+raster_gsp = gs.GridSpecFromSubplotSpec(1, 3, subplot_spec=gsp[0:2])
+violin_gsp = gs.GridSpecFromSubplotSpec(7, 1, subplot_spec=gsp[2], hspace=0.5)
 
 # Create axes within outer gridspec
 v1_1_9_axis = plt.Subplot(fig, raster_gsp[0])
@@ -203,10 +202,9 @@ rate_1_9_violin_axis = plt.Subplot(fig, violin_gsp[0])
 corr_coeff_1_9_violin_axis = plt.Subplot(fig, violin_gsp[1])
 irregularity_1_9_violin_axis = plt.Subplot(fig, violin_gsp[2])
 
-rate_1_9_kl_axis = plt.Subplot(fig, violin_gsp[3])
-corr_coeff_1_9_kl_axis = plt.Subplot(fig, violin_gsp[4])
-irregularity_1_9_kl_axis = plt.Subplot(fig, violin_gsp[5])
-
+rate_1_9_kl_axis = plt.Subplot(fig, violin_gsp[4])
+corr_coeff_1_9_kl_axis = plt.Subplot(fig, violin_gsp[5])
+irregularity_1_9_kl_axis = plt.Subplot(fig, violin_gsp[6])
 
 # Add axes
 fig.add_subplot(v1_1_9_axis)
@@ -225,25 +223,23 @@ excitatory_actor, inhibitory_actor = plot_area("V1", v1_1_9_axis, recordings)
 plot_area("V2", v2_1_9_axis, recordings)
 plot_area("FEF", fef_1_9_axis, recordings)
 
-vertical = True 
-
 genn_data_path = path.join("chi_1_9", "genn_half_rescale")
 nest_data_path = "chi_1_9"
 
 # Combine GeNN and NEST rates and plot split violin plot
 plot_violin("rates", genn_data_path, nest_data_path, rate_1_9_violin_axis, 
-            vertical, "Rate\n[spikes/s]", (-10.0, 150.0))
+            True, "Rate\n[spikes/s]", (-10.0, 150.0))
             
 # Combine GeNN and NEST correlation coefficients and plot split violin plot
 plot_violin("corr_coeff", genn_data_path, nest_data_path, corr_coeff_1_9_violin_axis, 
-            vertical, "Correlation\ncoefficient", (-0.1, 0.6))
+            True, "Correlation\ncoefficient", (-0.1, 0.6))
 
 # Combine GeNN and NEST irregularity and plot split violin plot
 plot_violin("irregularity", genn_data_path, nest_data_path, irregularity_1_9_violin_axis, 
-            vertical, "Irregularity", (-0.5, 2.5))
+            True, "Irregularity", (-0.5, 2.5))
 
 # Plot KL divergences
-plot_kl_divergence(nest_data_path, "rates", rate_1_9_kl_axis)
+kl_actors = plot_kl_divergence(nest_data_path, "rates", rate_1_9_kl_axis)
 plot_kl_divergence(nest_data_path, "corr_coeff", corr_coeff_1_9_kl_axis)
 plot_kl_divergence(nest_data_path, "irregularity", irregularity_1_9_kl_axis)
 
@@ -255,6 +251,9 @@ fef_1_9_axis.set_title("C: FEF", loc="left")
 rate_1_9_violin_axis.set_title("D", loc="left")
 corr_coeff_1_9_violin_axis.set_title("E", loc="left")
 irregularity_1_9_violin_axis.set_title("F", loc="left")
+rate_1_9_kl_axis.set_title("G", loc="left")
+corr_coeff_1_9_kl_axis.set_title("H", loc="left")
+irregularity_1_9_kl_axis.set_title("I", loc="left")
 
 # Configure axis ticks
 rate_1_9_violin_axis.yaxis.set_minor_locator(MultipleLocator(100.0))
@@ -263,14 +262,15 @@ irregularity_1_9_violin_axis.yaxis.set_minor_locator(MultipleLocator(1.0))
 
 plt.setp(rate_1_9_violin_axis.get_xticklabels(), visible=False)
 plt.setp(corr_coeff_1_9_violin_axis.get_xticklabels(), visible=False)
-plt.setp(irregularity_1_9_violin_axis.get_xticklabels(), visible=False)
 plt.setp(rate_1_9_kl_axis.get_xticklabels(), visible=False)
 plt.setp(corr_coeff_1_9_kl_axis.get_xticklabels(), visible=False)
 
 # Show figure legend with devices beneath figure
 pal = sns.color_palette()
 fig.legend([Rectangle((0, 0), 1, 1, fc=pal[0]), Rectangle((0, 0), 1, 1, fc=pal[1])],
-           ["NEST", "GeNN"], ncol=2, frameon=False, bbox_to_anchor=(0.875, 0.0), loc="lower center")
+           ["NEST", "GeNN"], ncol=2, frameon=False, bbox_to_anchor=(0.85, 0.525), loc="center")
+fig.legend(kl_actors, ["GeNN vs NEST", "GeNN vs GeNN"],
+           ncol=2, frameon=False, bbox_to_anchor=(0.85, 0.0), loc="lower center")
 
 # Increase size of markers in spike actors
 excitatory_actor.set_sizes([10])
