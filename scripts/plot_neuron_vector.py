@@ -49,6 +49,7 @@ for d in devices:
 
 axes[0].set_title("A", loc="left")
 axes[1].set_title("B", loc="left")
+axes[1].set_xticks(np.linspace(0, 2000000, 6))
 for a in axes:
     a.set_xlabel("Number of neurons")
     a.set_ylabel("Kernel time [s]")
