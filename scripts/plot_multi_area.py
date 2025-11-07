@@ -48,9 +48,9 @@ def load_pop_data(stat_file_stem, simulator_prefix, data_path):
     # Create and populate numpy array of data
     return create_pop_data_array(populations, simulator_prefix, values)
 
-def plot_area(name, axis, data_path):
+def plot_area(name, axis, archive):
     # Find files containing spikes for this area
-    area_spikes = list(reversed(sorted(glob(path.join(data_path, "genn_recordings", name + "_*.npy")))))
+    area_spikes = list(reversed(sorted(f for f in archive.files if f.startswith(f"{name}_"))))
 
     # Extract names of sub-populations from filenames
     pop_names = [path.basename(s).split("_")[1].split(".")[0] for s in area_spikes]
@@ -63,7 +63,7 @@ def plot_area(name, axis, data_path):
     excitatory_actor = None
     inhibitory_actor = None
     for i, (s, n)  in enumerate(zip(area_spikes, pop_names)):
-        data = np.load(s)
+        data = archive[s]
         
         # Approx
         num = int(np.amax(data[1]))
@@ -130,6 +130,35 @@ def plot_violin(stat_file_stem, genn_data_path, nest_data_path, axis, vertical, 
         axis.set_xlabel(label)
         axis.set_xlim(lim)
 
+def calc_kl_divergence(data_path, prefix, populations):
+    # Loop through populations
+    kls = []
+    for p in populations:
+        with open(path.join(data_path, prefix + "_" + p + ".npy"), "rb") as f:
+            bin_x = np.load(f)
+            ground_truth_hist = np.load(f)
+            comp_hist = np.load(f)
+
+        # Normalize histograms
+        bin_width = bin_x[1] - bin_x[0]
+        ground_truth_hist = np.divide(ground_truth_hist, np.sum(ground_truth_hist) / bin_width, dtype="float")
+        comp_hist = np.divide(comp_hist, np.sum(comp_hist) / bin_width, dtype="float")
+        
+        # Mask out bins with no data
+        mask = (comp_hist > 1.0E-15)
+        kls.append(entropy(ground_truth_hist[mask], comp_hist[mask]))
+    
+    # Return KL divergences as array
+    return np.asarray(kls)
+
+kl_permutations = ["nest_seed_1", "nest_seed_2", "nest_seed_3",
+                   "seed_1_seed_2", "seed_1_seed_3", "seed_2_seed_3"]
+
+kl_permutation_names = ["GeNN vs NEST", "GeNN vs GeNN"]
+
+# Population names
+kl_populations = ["23E", "23I", "4E", "4I", "5E", "5I", "6E", "6I"]
+
 # Create plot
 fig = plt.figure(frameon=False, figsize=(plot_settings.double_column_width, 4.0))
 
@@ -138,7 +167,7 @@ gsp = gs.GridSpec(1, 3)
 
 # Create two sub-gridspecs to divide these columns into gridspecs for raster and violin plots with an axis for each regime
 raster_gsp = gs.GridSpecFromSubplotSpec(1, 3, subplot_spec=gsp[0:2], hspace=0.3)
-violin_gsp = gs.GridSpecFromSubplotSpec(3, 1, subplot_spec=gsp[2], hspace=0.3)
+violin_gsp = gs.GridSpecFromSubplotSpec(8, 1, subplot_spec=gsp[2], hspace=0.3)
 
 # Create axes within outer gridspec
 v1_1_9_axis = plt.Subplot(fig, raster_gsp[0])
@@ -147,8 +176,8 @@ fef_1_9_axis = plt.Subplot(fig, raster_gsp[2])
 
 # Create axes within violin plot gridspec
 rate_1_9_violin_axis = plt.Subplot(fig, violin_gsp[0])
-corr_coeff_1_9_violin_axis = plt.Subplot(fig, violin_gsp[1])
-irregularity_1_9_violin_axis = plt.Subplot(fig, violin_gsp[2])
+corr_coeff_1_9_violin_axis = plt.Subplot(fig, violin_gsp[2])
+irregularity_1_9_violin_axis = plt.Subplot(fig, violin_gsp[4])
 
 # Add axes
 fig.add_subplot(v1_1_9_axis)
@@ -159,9 +188,10 @@ fig.add_subplot(corr_coeff_1_9_violin_axis)
 fig.add_subplot(irregularity_1_9_violin_axis)
 
 # Plot example GeNN raster plots
-excitatory_actor, inhibitory_actor = plot_area("V1", v1_1_9_axis, "chi_1_9")
-plot_area("V2", v2_1_9_axis, "chi_1_9")
-plot_area("FEF", fef_1_9_axis, "chi_1_9")
+recordings = np.load(path.join("chi_1_9", "genn_recordings.npz"))
+excitatory_actor, inhibitory_actor = plot_area("V1", v1_1_9_axis, recordings)
+plot_area("V2", v2_1_9_axis, recordings)
+plot_area("FEF", fef_1_9_axis, recordings)
 
 vertical = True 
 
@@ -195,6 +225,9 @@ rate_1_9_violin_axis.yaxis.set_minor_locator(MultipleLocator(100.0))
 corr_coeff_1_9_violin_axis.yaxis.set_minor_locator(MultipleLocator(0.25))
 irregularity_1_9_violin_axis.yaxis.set_minor_locator(MultipleLocator(1.0))
 
+plt.setp(rate_1_9_violin_axis.get_xticklabels(), visible=False)
+plt.setp(corr_coeff_1_9_violin_axis.get_xticklabels(), visible=False)
+plt.setp(irregularity_1_9_violin_axis.get_xticklabels(), visible=False)
 
 # Show figure legend with devices beneath figure
 pal = sns.color_palette()
