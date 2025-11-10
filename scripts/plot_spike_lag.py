@@ -133,8 +133,8 @@ fig.add_subplot(high_rmse_lag_axis, sharex=high_acc_lag_axis, sharey=low_acc_lag
 
 float_actor, half_actor, half_rescale_actor, int_actor = plot_voltage(low_rate_v_axis, 16000.0)
 plot_voltage(high_rate_v_axis, 4000.0)
-low_rate_v_axis.set_xlim((4800.0, 5000.0))
-high_rate_v_axis.set_xlim((1800.0, 2000.0))
+low_rate_v_axis.set_xlim((9300.0, 9500.0))
+high_rate_v_axis.set_xlim((2200.0, 2400.0))
 
 plot_lag(low_acc_lag_axis, 16000.0, half_actor.get_color(), half_rescale_actor.get_color(), int_actor.get_color())
 plot_lag(high_acc_lag_axis, 4000.0, half_actor.get_color(), half_rescale_actor.get_color(), int_actor.get_color())
