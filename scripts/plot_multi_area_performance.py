@@ -121,12 +121,12 @@ actors, bar_x, order = plot_stacked_bar(axis, 3, ["NEST GPU\nCluster", "NEST\nCl
                                         labels,
                                         [prepare_times_s, init_times_s, neuron_update_times_s,
                                          presynaptic_update_times_s, overhead_times_s])
-axis.set_xlim((-1.6, bar_x[-1] + 1))
+axis.set_xlim((-1.35, bar_x[-1] + 0.5))
 print(f"NEST CPU\n\tTotal: {nest_cpu}")
 print(f"NEST GPU\n\tTotal: {nest_gpu}")
 for i, o in enumerate(order):
     x0, y = data_to_axis(axis, bar_x[i], 400)
-    inset_axis = axis.inset_axes([x0 - 0.12, 0.1, 0.07, 0.5])
+    inset_axis = axis.inset_axes([x0 - 0.136, 0.1, 0.07, 0.5])
     
     plot_inset_stacked_bar(inset_axis, [prepare_times_s[o], init_times_s[o], 
                            neuron_update_times_s[o], presynaptic_update_times_s[o]])
@@ -137,10 +137,10 @@ for i, o in enumerate(order):
     inset_axis.yaxis.grid(False)
     plt.setp(inset_axis.get_xticklabels(), visible=False)
 
-    axis.add_line(lines.Line2D([x0 - 0.035, x0 - 0.049], [0.005, 0.1],
+    axis.add_line(lines.Line2D([x0 - 0.052, x0 - 0.066], [0.005, 0.1],
                                lw=0.5, color="black", axes=axis,
                                transform=axis.transAxes))
-    axis.add_line(lines.Line2D([x0 - 0.035, x0 - 0.049], [y, 0.6],
+    axis.add_line(lines.Line2D([x0 - 0.052, x0 - 0.066], [y, 0.6],
                                lw=0.5, color="black", axes=axis,
                                transform=axis.transAxes))
 #

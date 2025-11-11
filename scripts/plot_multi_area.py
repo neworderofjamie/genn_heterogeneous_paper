@@ -223,7 +223,7 @@ excitatory_actor, inhibitory_actor = plot_area("V1", v1_1_9_axis, recordings)
 plot_area("V2", v2_1_9_axis, recordings)
 plot_area("FEF", fef_1_9_axis, recordings)
 
-genn_data_path = path.join("chi_1_9", "genn_half_rescale")
+genn_data_path = path.join("chi_1_9", "genn_half_weight")
 nest_data_path = "chi_1_9"
 
 # Combine GeNN and NEST rates and plot split violin plot

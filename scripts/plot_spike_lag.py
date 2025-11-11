@@ -164,7 +164,7 @@ plt.setp(high_acc_lag_axis.get_yticklabels(), visible=False)
 plt.setp(high_rmse_lag_axis.get_yticklabels(), visible=False)
 
 fig.align_ylabels([low_acc_lag_axis, low_rmse_lag_axis])
-fig.legend([float_actor, half_actor, half_rescale_actor, int_actor], ["Float", "Half-precision", "Rescaled half-precision", "Integer"], 
+fig.legend([float_actor, half_actor, half_rescale_actor, int_actor], ["Single-precision", "Half-precision", "Rescaled half-precision", "Integer"], 
            loc="lower center", ncol=4, frameon=False)
 
 fig.tight_layout(pad=0, rect=[0.0, 0.15, 1.0, 1.0])

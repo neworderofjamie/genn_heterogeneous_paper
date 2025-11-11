@@ -59,10 +59,10 @@ for a in axes:
 
 assert len(actors) == 2
 fig.legend([actors[0], actors[1], mlines.Line2D([],[], color="black"), mlines.Line2D([],[], linestyle="--", color="black")],
-           [labels[0], labels[1], "Single-precision", "Half-precision vectorized"], 
+           [labels[0], labels[1], "Standard kernel", "Vectorized kernel"], 
            loc="lower center", ncol=4, frameon=False)
 
-fig.tight_layout(pad=0, rect=[0.0, 0.2, 1.0, 1.0])
+fig.tight_layout(pad=0, rect=[0.0, 0.15, 1.0, 1.0])
 if not plot_settings.presentation:
     fig.savefig("../figures/vector_perf.pdf", dpi=600)
 
