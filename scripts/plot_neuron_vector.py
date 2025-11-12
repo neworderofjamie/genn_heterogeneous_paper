@@ -27,9 +27,9 @@ for d in devices:
     print(f"\tMax neuron speedup: {np.amax(neuron_float_df['Neuron time'].to_numpy() / neuron_half_df['Neuron time'].to_numpy())}")
     
     # Plot lines
-    actor = axes[0].plot(neuron_float_df["Num neurons"], neuron_float_df["Neuron time"])[0]
+    actor = axes[0].plot(neuron_float_df["Num neurons"], neuron_float_df["Neuron time"], marker=".")[0]
     axes[0].plot(neuron_half_df["Num neurons"], neuron_half_df["Neuron time"],
-                 color=actor.get_color(), linestyle="--")
+                 marker=".", color=actor.get_color(), linestyle="--")
     
     # Get synapse data
     spike_prop_device_df = spike_prop_df[spike_prop_df["Device"] == d]
@@ -38,9 +38,9 @@ for d in devices:
     print(f"\tMax spike propagation speedup: {np.amax(spike_prop_float_df['Presynaptic time'].to_numpy() / spike_prop_half_df['Presynaptic time'].to_numpy())}")
     # Plot lines
     axes[1].plot(spike_prop_float_df["Num neurons"], spike_prop_float_df["Presynaptic time"],
-                 color=actor.get_color())
+                 marker=".", color=actor.get_color())
     axes[1].plot(spike_prop_half_df["Num neurons"], spike_prop_half_df["Presynaptic time"],
-                 color=actor.get_color(), linestyle="--")
+                 marker=".", color=actor.get_color(), linestyle="--")
     
     
     
@@ -59,7 +59,7 @@ for a in axes:
 
 assert len(actors) == 2
 fig.legend([actors[0], actors[1], mlines.Line2D([],[], color="black"), mlines.Line2D([],[], linestyle="--", color="black")],
-           [labels[0], labels[1], "Standard kernel", "Vectorized kernel"], 
+           [labels[0], labels[1], "Standard kernel", "Vectorised kernel"], 
            loc="lower center", ncol=4, frameon=False)
 
 fig.tight_layout(pad=0, rect=[0.0, 0.15, 1.0, 1.0])
