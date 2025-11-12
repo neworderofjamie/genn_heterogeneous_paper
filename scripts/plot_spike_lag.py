@@ -9,46 +9,39 @@ def load_spikes(data_type: str, time: float):
     return (np.load(os.path.join("compare_neurons", f"spike_id_{data_type}_0.1_{time}.npy")),
             np.load(os.path.join("compare_neurons", f"spike_time_{data_type}_0.1_{time}.npy")))
 
-def plot_lag(axis, time: float, half_colour, half_rescale_colour, int_colour,
-             num_neurons: int = 10):
+def plot_lag(axis, time: float, half_colour, half_rescale_colour, num_neurons: int = 10):
     # Load data
     spike_id_float, spike_time_float = load_spikes("float", time)
     spike_id_half, spike_time_half = load_spikes("half", time)
     spike_id_half_rescale, spike_time_half_rescale = load_spikes("half_rescale", time)
-    spike_id_int, spike_time_int = load_spikes("int", time)
 
     # Loop through neurons
     half_lag = []
     half_rescale_lag = []
-    int_lag = []
     for i in range(num_neurons):
         # Extract spike ids for this neuron
         neuron_spike_time_float = spike_time_float[spike_id_float == i]
         neuron_spike_time_half = spike_time_half[spike_id_half == i]
         neuron_spike_time_half_rescale = spike_time_half_rescale[spike_id_half_rescale == i]
-        neuron_spike_time_int = spike_time_int[spike_id_int == i]
 
         # Make length the same
-        num = min(len(neuron_spike_time_float),
-                  len(neuron_spike_time_half),
-                  len(neuron_spike_time_half_rescale),
-                  len(neuron_spike_time_int))
+        num_half = min(len(neuron_spike_time_float),
+                       len(neuron_spike_time_half))
+        num_half_rescale = min(len(neuron_spike_time_float),
+                               len(neuron_spike_time_half_rescale))
+
         # Calculate sum of absolute lags
-        half_lag.append(np.sum(np.abs(neuron_spike_time_half[:num]
-                                      - neuron_spike_time_float[:num])))
-        half_rescale_lag.append(np.sum(np.abs(neuron_spike_time_half_rescale[:num] 
-                                              - neuron_spike_time_float[:num])))
-        int_lag.append(np.sum(np.abs(neuron_spike_time_int[:num] 
-                                     - neuron_spike_time_float[:num])))
+        half_lag.append(np.sum(np.abs(neuron_spike_time_half[:num_half]
+                                      - neuron_spike_time_float[:num_half])))
+        half_rescale_lag.append(np.sum(np.abs(neuron_spike_time_half_rescale[:num_half_rescale] 
+                                              - neuron_spike_time_float[:num_half_rescale])))
     
-    lag = np.column_stack((half_lag, half_rescale_lag, int_lag))
+    lag = np.column_stack((half_lag, half_rescale_lag))
     bplot = axis.boxplot(lag, showfliers=False, patch_artist=True)
     bplot["boxes"][0].set_facecolor(half_colour)
     bplot["boxes"][1].set_facecolor(half_rescale_colour)
-    bplot["boxes"][2].set_facecolor(int_colour)
     bplot["medians"][0].set_color("black")
     bplot["medians"][1].set_color("black")
-    bplot["medians"][2].set_color("black")
     axis.xaxis.grid(False)
     sns.despine(ax=axis)
 
@@ -56,28 +49,23 @@ def plot_voltage(axis, time: float, neuron: int = 0):
     v_float = np.load(os.path.join("compare_neurons", f"v_float_0.1_{time}.npy"))
     v_half = np.load(os.path.join("compare_neurons", f"v_half_0.1_{time}.npy"))
     v_half_rescale = np.load(os.path.join("compare_neurons", f"v_half_rescale_0.1_{time}.npy"))
-    v_int = np.load(os.path.join("compare_neurons", f"v_int_0.1_{time}.npy"))
 
     assert v_float.shape == v_half.shape
     assert v_float.shape == v_half_rescale.shape
-    assert v_float.shape == v_int.shape
 
     t = np.arange(0, v_float.shape[0] * 0.1, 0.1)
     float_actor = axis.plot(t, v_float[:,neuron], linestyle="--", color="gray")[0]
     half_actor = axis.plot(t, v_half[:,neuron], alpha=0.5)[0]
     half_rescale_actor = axis.plot(t, (v_half_rescale[:,neuron] * 15.0) - 65.0, 
                                    alpha=0.5)[0]
-    int_actor = axis.plot(t, (v_int[:,neuron] * (15.0 / 32767.0)) - 65.0, 
-                          alpha=0.5)[0]
     axis.xaxis.grid(False)
     sns.despine(ax=axis)
-    return float_actor, half_actor, half_rescale_actor, int_actor
+    return float_actor, half_actor, half_rescale_actor
 
-def plot_rmse(axis, time: float, half_colour, half_rescale_colour, int_colour, num_neurons: int = 10):
+def plot_rmse(axis, time: float, half_colour, half_rescale_colour, num_neurons: int = 10):
     v_float = np.load(os.path.join("compare_neurons", f"v_float_0.1_{time}.npy"))
     v_half = np.load(os.path.join("compare_neurons", f"v_half_0.1_{time}.npy"))
     v_half_rescale = np.load(os.path.join("compare_neurons", f"v_half_rescale_0.1_{time}.npy"))
-    v_int = np.load(os.path.join("compare_neurons", f"v_int_0.1_{time}.npy"))
 
     assert v_float.shape == v_half.shape
     assert v_float.shape == v_half_rescale.shape
@@ -85,23 +73,18 @@ def plot_rmse(axis, time: float, half_colour, half_rescale_colour, int_colour, n
     # Loop through neurons
     half_rmse = []
     half_rescale_rmse = []
-    int_rmse = []
     for i in range(num_neurons):
         v_half_rescale_scale = (v_half_rescale[:,i] * 15.0) - 65.0
-        v_int_scale = (v_int[:,i] * (15.0 / 32767.0)) - 65.0
 
         half_rmse.append(np.sqrt(np.sum(np.square(v_half[:,i] - v_float[:,i])) / v_float.shape[0]))
         half_rescale_rmse.append(np.sqrt(np.sum(np.square(v_half_rescale_scale - v_float[:,i])) / v_float.shape[0]))
-        int_rmse.append(np.sqrt(np.sum(np.square(v_int_scale - v_float[:,i])) / v_float.shape[0]))
 
-    rmse = np.column_stack((half_rmse, half_rescale_rmse, int_rmse))
+    rmse = np.column_stack((half_rmse, half_rescale_rmse))
     bplot = axis.boxplot(rmse, showfliers=False, patch_artist=True)
     bplot["boxes"][0].set_facecolor(half_colour)
     bplot["boxes"][1].set_facecolor(half_rescale_colour)
-    bplot["boxes"][2].set_facecolor(int_colour)
     bplot["medians"][0].set_color("black")
     bplot["medians"][1].set_color("black")
-    bplot["medians"][2].set_color("black")
     axis.xaxis.grid(False)
     sns.despine(ax=axis)
 
@@ -131,15 +114,15 @@ fig.add_subplot(low_rmse_lag_axis, sharex=low_acc_lag_axis)
 fig.add_subplot(high_acc_lag_axis, sharey=low_acc_lag_axis)
 fig.add_subplot(high_rmse_lag_axis, sharex=high_acc_lag_axis, sharey=low_acc_lag_axis)
 
-float_actor, half_actor, half_rescale_actor, int_actor = plot_voltage(low_rate_v_axis, 16000.0)
+float_actor, half_actor, half_rescale_actor = plot_voltage(low_rate_v_axis, 16000.0)
 plot_voltage(high_rate_v_axis, 4000.0)
-low_rate_v_axis.set_xlim((9300.0, 9500.0))
-high_rate_v_axis.set_xlim((2200.0, 2400.0))
+low_rate_v_axis.set_xlim((4800.0, 5000.0))
+high_rate_v_axis.set_xlim((1800.0, 2000.0))
 
-plot_lag(low_acc_lag_axis, 16000.0, half_actor.get_color(), half_rescale_actor.get_color(), int_actor.get_color())
-plot_lag(high_acc_lag_axis, 4000.0, half_actor.get_color(), half_rescale_actor.get_color(), int_actor.get_color())
-plot_rmse(low_rmse_lag_axis, 16000.0, half_actor.get_color(), half_rescale_actor.get_color(), int_actor.get_color())
-plot_rmse(high_rmse_lag_axis, 4000.0, half_actor.get_color(), half_rescale_actor.get_color(), int_actor.get_color())
+plot_lag(low_acc_lag_axis, 16000.0, half_actor.get_color(), half_rescale_actor.get_color())
+plot_lag(high_acc_lag_axis, 4000.0, half_actor.get_color(), half_rescale_actor.get_color())
+plot_rmse(low_rmse_lag_axis, 16000.0, half_actor.get_color(), half_rescale_actor.get_color())
+plot_rmse(high_rmse_lag_axis, 4000.0, half_actor.get_color(), half_rescale_actor.get_color())
 
 low_rate_v_axis.set_title("A", loc="left")
 high_rate_v_axis.set_title("B", loc="left")
@@ -164,8 +147,8 @@ plt.setp(high_acc_lag_axis.get_yticklabels(), visible=False)
 plt.setp(high_rmse_lag_axis.get_yticklabels(), visible=False)
 
 fig.align_ylabels([low_acc_lag_axis, low_rmse_lag_axis])
-fig.legend([float_actor, half_actor, half_rescale_actor, int_actor], ["Single-precision", "Half-precision", "Rescaled half-precision", "Integer"], 
-           loc="lower center", ncol=4, frameon=False)
+fig.legend([float_actor, half_actor, half_rescale_actor, int_actor], ["Single-precision", "Half-precision", "Rescaled half-precision"], 
+           loc="lower center", ncol=3, frameon=False)
 
 fig.tight_layout(pad=0, rect=[0.0, 0.15, 1.0, 1.0])
 if not plot_settings.presentation:
