@@ -126,7 +126,7 @@ print(f"NEST CPU\n\tTotal: {nest_cpu}")
 print(f"NEST GPU\n\tTotal: {nest_gpu}")
 for i, o in enumerate(order):
     x0, y = data_to_axis(axis, bar_x[i], 400)
-    inset_axis = axis.inset_axes([x0 - 0.136, 0.1, 0.07, 0.5])
+    inset_axis = axis.inset_axes([x0 - 0.176, 0.1, 0.11, 0.5])
     
     plot_inset_stacked_bar(inset_axis, [prepare_times_s[o], init_times_s[o], 
                            neuron_update_times_s[o], presynaptic_update_times_s[o]])
@@ -152,7 +152,7 @@ fig.legend(actors, ["Preparation", "Initialisation", "Neuron update",
                     "Presynaptic update", "Overhead", "NEST simulation"],
            loc="lower center", ncol=6, frameon=False)
 
-fig.tight_layout(pad=0, rect=[0.0, 0.175, 1.0, 1.0])
+fig.tight_layout(pad=0, rect=[0.0, 0.15, 1.0, 1.0])
 if not plot_settings.presentation:
     fig.savefig("../figures/multiarea_perf.pdf", dpi=600)
     
