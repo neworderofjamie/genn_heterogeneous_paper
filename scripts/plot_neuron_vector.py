@@ -47,8 +47,8 @@ for d in devices:
     actors.append(actor)
     labels.append(d)
 
-axes[0].set_title("A", loc="left")
-axes[1].set_title("B", loc="left")
+axes[0].set_title("A", x=-0.06666)
+axes[1].set_title("B", x=-0.06666)
 axes[1].set_xticks(np.linspace(0, 2000000, 6))
 for a in axes:
     a.set_xlabel("Number of neurons")
