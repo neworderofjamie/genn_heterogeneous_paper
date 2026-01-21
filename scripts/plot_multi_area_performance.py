@@ -8,10 +8,6 @@ import seaborn as sns
 from glob import glob
 from json import load
 
-def data_to_axis(axis, x, y):
-    point = (x, y)
-    trans = axis.transData.transform(point)
-    return axis.transAxes.inverted().transform(trans)
 
 def plot_stacked_bar(axis, sort_index, ref_labels,  
                      ref_heights, labels, heights):
@@ -23,8 +19,7 @@ def plot_stacked_bar(axis, sort_index, ref_labels,
     labels = [labels[o] for o in order]
 
     num_bars = len(prepare_times_s)
-    bar_x = np.arange(0, num_bars * 2, 2)
-    bar_x + 2
+    bar_x = np.arange(num_bars)
     bottom = np.zeros(num_bars)
     
     actors = []
@@ -33,7 +28,7 @@ def plot_stacked_bar(axis, sort_index, ref_labels,
         bottom += h
     
     ref_bar_x = np.arange(len(ref_heights))
-    ref_bar_x += ((num_bars - 1) * 2) + 1
+    ref_bar_x += (num_bars - 1) + 1
     actors.append(axis.bar(ref_bar_x, ref_heights, linewidth=0, width=0.6))
     
     full_bar_x = np.concatenate((bar_x, ref_bar_x))
@@ -41,14 +36,6 @@ def plot_stacked_bar(axis, sort_index, ref_labels,
     axis.set_xticklabels(labels + ref_labels)
     return actors, full_bar_x, order
 
-def plot_inset_stacked_bar(axis, heights):
-    bottom = 0
-    actors = []
-    pal = sns.color_palette()
-    for i, h in enumerate(heights):
-        actors.append(axis.bar([0.0], h, bottom=bottom, linewidth=0))
-        bottom += h
-    return actors
 
 # Loop through parameter files
 baseline_time = 100500.0
@@ -112,7 +99,7 @@ for f in glob(path.join("multiarea_logs", "custom_params*")):
 
 # Numpify
 
-fig, axis = plt.subplots(figsize=(plot_settings.double_column_width, 2.0))
+fig, axis = plt.subplots(figsize=(plot_settings.column_width, 2.2))
 
 # Plot main stacked bar
 nest_gpu = 15.3 * (baseline_time / 1000.0)
@@ -121,38 +108,18 @@ actors, bar_x, order = plot_stacked_bar(axis, 3, ["NEST GPU\nCluster", "NEST\nCl
                                         labels,
                                         [prepare_times_s, init_times_s, neuron_update_times_s,
                                          presynaptic_update_times_s, overhead_times_s])
-axis.set_xlim((-1.35, bar_x[-1] + 0.5))
 print(f"NEST CPU\n\tTotal: {nest_cpu}")
 print(f"NEST GPU\n\tTotal: {nest_gpu}")
-for i, o in enumerate(order):
-    x0, y = data_to_axis(axis, bar_x[i], 400)
-    inset_axis = axis.inset_axes([x0 - 0.176, 0.1, 0.11, 0.5])
-    
-    plot_inset_stacked_bar(inset_axis, [prepare_times_s[o], init_times_s[o], 
-                           neuron_update_times_s[o], presynaptic_update_times_s[o]])
-    
-    inset_axis.set_ylim((0, 400))
-    inset_axis.set_ylabel("Time [s]")
-    inset_axis.xaxis.grid(False)
-    inset_axis.yaxis.grid(False)
-    plt.setp(inset_axis.get_xticklabels(), visible=False)
 
-    axis.add_line(lines.Line2D([x0 - 0.052, x0 - 0.066], [0.005, 0.1],
-                               lw=0.5, color="black", axes=axis,
-                               transform=axis.transAxes))
-    axis.add_line(lines.Line2D([x0 - 0.052, x0 - 0.066], [y, 0.6],
-                               lw=0.5, color="black", axes=axis,
-                               transform=axis.transAxes))
-#
 axis.set_ylabel("Time [s]")
 sns.despine(ax=axis, left=True, bottom=True)
 axis.xaxis.grid(False)
 
 fig.legend(actors, ["Preparation", "Initialisation", "Neuron update",
                     "Presynaptic update", "Overhead", "NEST simulation"],
-           loc="lower center", ncol=6, frameon=False)
+           loc="lower center", ncol=3, frameon=False)
 
-fig.tight_layout(pad=0, rect=[0.0, 0.15, 1.0, 1.0])
+fig.tight_layout(pad=0, rect=[0.0, 0.175, 1.0, 1.0])
 if not plot_settings.presentation:
     fig.savefig("../figures/multiarea_perf.pdf", dpi=600)
     
