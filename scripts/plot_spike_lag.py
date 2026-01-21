@@ -20,9 +20,9 @@ def plot_lag(axis, time: float, half_colour, half_rescale_colour, num_neurons: i
     half_rescale_lag = []
     for i in range(num_neurons):
         # Extract spike ids for this neuron
-        neuron_spike_time_float = spike_time_float[spike_id_float == i]
-        neuron_spike_time_half = spike_time_half[spike_id_half == i]
-        neuron_spike_time_half_rescale = spike_time_half_rescale[spike_id_half_rescale == i]
+        neuron_spike_time_float = spike_time_float[spike_id_float == i] / 1000.0
+        neuron_spike_time_half = spike_time_half[spike_id_half == i] / 1000.0
+        neuron_spike_time_half_rescale = spike_time_half_rescale[spike_id_half_rescale == i] / 1000.0
 
         # Make length the same
         num_half = min(len(neuron_spike_time_float),
@@ -132,7 +132,7 @@ high_acc_lag_axis.set_title("D", loc="left")
 high_rmse_lag_axis.set_title("F", loc="left")
 
 # Label axes
-low_acc_lag_axis.set_ylabel("Lag [ms]")
+low_acc_lag_axis.set_ylabel("Lag [s]")
 low_rmse_lag_axis.set_ylabel("RMSE [mV]")
 low_rate_v_axis.set_ylabel("Membrane voltage [mV]")
 
