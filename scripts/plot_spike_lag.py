@@ -87,6 +87,12 @@ def plot_rmse(axis, time: float, half_colour, half_rescale_colour, num_neurons: 
     axis.xaxis.grid(False)
     sns.despine(ax=axis)
 
+def get_ulps(start, stop):
+    c = [np.float16(start)]
+    while c[-1] < stop:
+        c.append(np.nextafter(c[-1], stop))
+    return c
+
 def plot_divergence(spike_axis, initial_axis, time: float, neuron: int, 
                     half_colour, half_rescale_colour):
     v_float = np.load(os.path.join("compare_neurons", f"v_float_0.1_{time}.npy"))
@@ -106,13 +112,11 @@ def plot_divergence(spike_axis, initial_axis, time: float, neuron: int,
         axis.xaxis.grid(False)
         axis.yaxis.grid(False)
         sns.despine(ax=axis)
-        
+    
     # Plot fp16 values in interval
-    c = np.float16(-65.0)
-    while c < -64.5:
+    for c in get_ulps(-65.0, -64.5):
         initial_axis.axhline(c, linestyle=":", alpha=0.2, color="gray")
-        c = np.nextafter(c, -64)
-
+   
     # Zoom in on different bits
     spike_axis.set_xlim((13.25, 13.85))
     spike_axis.set_ylim((-50.25, -50.0))
@@ -136,8 +140,8 @@ low_rate_v_axis = plt.Subplot(fig, gsp[0])
 high_rate_v_axis = plt.Subplot(fig, gsp[1])
 
 # Create axes for insets
-spike_v_axis = plt.Subplot(fig, inset_gsp[0,0])
-start_v_axis = plt.Subplot(fig, inset_gsp[1,0])
+start_v_axis = plt.Subplot(fig, inset_gsp[0,0])
+spike_v_axis = plt.Subplot(fig, inset_gsp[1,0])
 
 # Create axes within violin plot gridspec
 low_acc_lag_axis = plt.Subplot(fig, boxplot_gsp[0,0])
@@ -171,8 +175,8 @@ plot_rmse(high_rmse_lag_axis, 4000.0, half_actor.get_color(), half_rescale_actor
 
 low_rate_v_axis.set_title("A", x=-0.1333)
 high_rate_v_axis.set_title("B", x=-0.1333)
-spike_v_axis.set_title("C", x=-0.2)
-start_v_axis.set_title("D", x=-0.2)
+start_v_axis.set_title("C", x=-0.2)
+spike_v_axis.set_title("D", x=-0.2)
 low_acc_lag_axis.set_title("E", x=-0.2)
 low_rmse_lag_axis.set_title("G", x=-0.2)
 high_acc_lag_axis.set_title("F", x=-0.2)
