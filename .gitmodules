@@ -1,0 +1,4 @@
+[submodule "models/multi-area-model"]
+	path = models/multi-area-model
+	url = ../multi-area-model.git
+	branch = recording
