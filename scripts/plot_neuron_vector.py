@@ -12,8 +12,15 @@ spike_prop_df = read_csv("hip_dense_vector.csv", delimiter=",")
 devices = neuron_df["Device"].unique()
 #assert devices == spike_prop_df["Device"].unique()
 
-fig, axes = plt.subplots(1, 2, figsize=(plot_settings.double_column_width, 2.0))
-
+if plot_settings.presentation:
+    neuron_fig, neuron_axis = plt.subplots()
+    spike_prop_fig, spike_prop_axis = plt.subplots()
+    axes = [neuron_axis, spike_prop_axis]
+    figs = [neuron_fig, spike_prop_fig]
+else:
+    fig, axes = plt.subplots(1, 2, figsize=(plot_settings.double_column_width, 2.0))
+    figs = [fig]
+    
 # Loop through devices
 actors = []
 labels = []
@@ -58,11 +65,12 @@ for a in axes:
     sns.despine(ax=a)
 
 assert len(actors) == 2
-fig.legend([actors[0], actors[1], mlines.Line2D([],[], color="black"), mlines.Line2D([],[], linestyle="--", color="black")],
-           [labels[0], labels[1], "Standard kernel", "Vectorised kernel"], 
-           loc="lower center", ncol=4, frameon=False)
+for f in figs:
+    f.legend([actors[0], actors[1], mlines.Line2D([],[], color="black"), mlines.Line2D([],[], linestyle="--", color="black")],
+             [labels[0], labels[1], "Standard kernel", "Vectorised kernel"], 
+             loc="lower center", ncol=4, frameon=False)
 
-fig.tight_layout(pad=0, rect=[0.0, 0.15, 1.0, 1.0])
+    f.tight_layout(pad=0, rect=[0.0, 0.15, 1.0, 1.0])
 if not plot_settings.presentation:
     fig.savefig("../figures/vector_perf.pdf", dpi=600)
 
