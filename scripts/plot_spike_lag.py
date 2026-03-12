@@ -124,20 +124,37 @@ def plot_divergence(spike_axis, initial_axis, time: float, neuron: int,
     initial_axis.set_xlim((0.0, 0.4))
     initial_axis.set_ylim((-65.0, -64.6))
     
+if plot_settings.presentation:
+    raw_fig, raw_axes = plt.subplots(1, 2, sharey=True)
+    low_rate_v_axis = raw_axes[0]
+    high_rate_v_axis = raw_axes[1]
     
-fig = plt.figure(frameon=False, figsize=(plot_settings.double_column_width, 2.0))
+    fig = plt.figure()
+    gsp = gs.GridSpec(1, 2, width_ratios=[0.5 / 3, 1.0 / 3])
+    
+    # Create two sub-gridspecs to divide these columns into gridspecs for voltage traces and box plots
+    boxplot_gsp = gs.GridSpecFromSubplotSpec(2, 2, subplot_spec=gsp[1], hspace=0.4)
+    inset_gsp = gs.GridSpecFromSubplotSpec(2, 1, subplot_spec=gsp[0], hspace=0.4)
+    
+    figs = [raw_fig, fig]
+else:
+    fig = plt.figure(frameon=False, figsize=(plot_settings.double_column_width, 2.0))
 
-# Create outer gridspec with four columns
-gsp = gs.GridSpec(1, 4, width_ratios=[0.25, 0.25, 0.5 / 3, 1.0 / 3])
+    # Create outer gridspec with four columns
+    gsp = gs.GridSpec(1, 4, width_ratios=[0.25, 0.25, 0.5 / 3, 1.0 / 3])
 
 
-# Create two sub-gridspecs to divide these columns into gridspecs for voltage traces and box plots
-boxplot_gsp = gs.GridSpecFromSubplotSpec(2, 2, subplot_spec=gsp[3], hspace=0.4)
-inset_gsp = gs.GridSpecFromSubplotSpec(2, 1, subplot_spec=gsp[2], hspace=0.4)
+    # Create two sub-gridspecs to divide these columns into gridspecs for voltage traces and box plots
+    boxplot_gsp = gs.GridSpecFromSubplotSpec(2, 2, subplot_spec=gsp[3], hspace=0.4)
+    inset_gsp = gs.GridSpecFromSubplotSpec(2, 1, subplot_spec=gsp[2], hspace=0.4)
 
-# Create axes within voltage gridspec
-low_rate_v_axis = plt.Subplot(fig, gsp[0])
-high_rate_v_axis = plt.Subplot(fig, gsp[1])
+    # Create axes within voltage gridspec
+    low_rate_v_axis = plt.Subplot(fig, gsp[0])
+    high_rate_v_axis = plt.Subplot(fig, gsp[1])
+    fig.add_subplot(low_rate_v_axis)
+    fig.add_subplot(high_rate_v_axis, sharey=low_rate_v_axis)
+
+    figs = [fig]
 
 # Create axes for insets
 start_v_axis = plt.Subplot(fig, inset_gsp[0,0])
@@ -150,8 +167,7 @@ high_acc_lag_axis = plt.Subplot(fig, boxplot_gsp[0,1])
 high_rmse_lag_axis = plt.Subplot(fig, boxplot_gsp[1,1])
 
 # Add axes
-fig.add_subplot(low_rate_v_axis)
-fig.add_subplot(high_rate_v_axis, sharey=low_rate_v_axis)
+
 fig.add_subplot(spike_v_axis)
 fig.add_subplot(start_v_axis)
 
@@ -173,20 +189,29 @@ plot_lag(high_acc_lag_axis, 4000.0, half_actor.get_color(), half_rescale_actor.g
 plot_rmse(low_rmse_lag_axis, 16000.0, half_actor.get_color(), half_rescale_actor.get_color())
 plot_rmse(high_rmse_lag_axis, 4000.0, half_actor.get_color(), half_rescale_actor.get_color())
 
-low_rate_v_axis.set_title("A", x=-0.1333)
-high_rate_v_axis.set_title("B", x=-0.1333)
-start_v_axis.set_title("C", x=-0.2)
-spike_v_axis.set_title("D", x=-0.2)
-low_acc_lag_axis.set_title("E", x=-0.2)
-low_rmse_lag_axis.set_title("G", x=-0.2)
-high_acc_lag_axis.set_title("F", x=-0.2)
-high_rmse_lag_axis.set_title("H", x=-0.2)
+if not plot_settings.presentation:
+    low_rate_v_axis.set_title("A", x=-0.1333)
+    high_rate_v_axis.set_title("B", x=-0.1333)
+    start_v_axis.set_title("C", x=-0.2)
+    spike_v_axis.set_title("D", x=-0.2)
+    low_acc_lag_axis.set_title("E", x=-0.2)
+    low_rmse_lag_axis.set_title("G", x=-0.2)
+    high_acc_lag_axis.set_title("F", x=-0.2)
+    high_rmse_lag_axis.set_title("H", x=-0.2)
 
 # Label axes
 low_acc_lag_axis.set_ylabel("Lag [s]")
 low_rmse_lag_axis.set_ylabel("RMSE [mV]")
 low_rate_v_axis.set_ylabel("Membrane voltage [mV]")
 
+if plot_settings.presentation:
+    low_rate_v_axis.set_xlabel("Time [ms]")
+    high_rate_v_axis.set_xlabel("Time [ms]")
+    start_v_axis.set_xlabel("Time [ms]")
+    spike_v_axis.set_xlabel("Time [ms]")
+    start_v_axis.set_ylabel("Membrane voltage [mV]")
+    spike_v_axis.set_ylabel("Membrane voltage [mV]")
+    
 # Hide ticks
 plt.setp(low_acc_lag_axis.get_xticklabels(), visible=False)
 plt.setp(high_acc_lag_axis.get_xticklabels(), visible=False)
@@ -198,10 +223,12 @@ plt.setp(high_acc_lag_axis.get_yticklabels(), visible=False)
 plt.setp(high_rmse_lag_axis.get_yticklabels(), visible=False)
 
 fig.align_ylabels([low_acc_lag_axis, low_rmse_lag_axis])
-fig.legend([float_actor, half_actor, half_rescale_actor], ["Single-precision", "Half-precision", "Rescaled half-precision"], 
-           loc="lower center", ncol=3, frameon=False)
 
-fig.tight_layout(pad=0, rect=[0.0, 0.15, 1.0, 1.0])
+for f in figs:
+    f.legend([float_actor, half_actor, half_rescale_actor], ["Single-precision", "Half-precision", "Rescaled half-precision"], 
+             loc="lower center", ncol=3, frameon=False)
+
+    f.tight_layout(pad=0, rect=[0.0, 0.0 if plot_settings.presentation else 0.15, 1.0, 1.0])
 if not plot_settings.presentation:
     fig.savefig("../figures/single_neuron.pdf", dpi=600)
 
