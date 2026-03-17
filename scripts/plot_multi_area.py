@@ -182,40 +182,55 @@ def plot_kl_divergence(data_path, stat, axis):
     axis.set_ylabel("$D_{KL}$")
     return permutation_actors
 
-# Create plot
-fig = plt.figure(frameon=False, figsize=(plot_settings.double_column_width, 4.0))
+if plot_settings.presentation:
+    spike_fig, spike_axes = plt.subplots(1, 3)
+    v1_1_9_axis, v2_1_9_axis, fef_1_9_axis = spike_axes
+    
+    
+    stats_fig, stats_axes = plt.subplots(3, 2, sharex="col")
+    rate_1_9_violin_axis, corr_coeff_1_9_violin_axis, irregularity_1_9_violin_axis = stats_axes[:,0]
+    rate_1_9_kl_axis, corr_coeff_1_9_kl_axis, irregularity_1_9_kl_axis = stats_axes[:,1]
+   
+    figs = [spike_fig, stats_fig]
+    
+else:
+    # Create plot
+    fig = plt.figure(frameon=False, figsize=(plot_settings.double_column_width, 4.0))
+    spike_fig = fig
+    stats_fig = fig
+    figs = [fig]
 
-# Create outer gridspec with three columns
-gsp = gs.GridSpec(1, 3)
+    # Create outer gridspec with three columns
+    gsp = gs.GridSpec(1, 3)
 
-# Create two sub-gridspecs to divide these columns into gridspecs for raster and violin plots with an axis for each regime
-raster_gsp = gs.GridSpecFromSubplotSpec(1, 3, subplot_spec=gsp[0:2])
-violin_gsp = gs.GridSpecFromSubplotSpec(7, 1, subplot_spec=gsp[2], hspace=0.5)
+    # Create two sub-gridspecs to divide these columns into gridspecs for raster and violin plots with an axis for each regime
+    raster_gsp = gs.GridSpecFromSubplotSpec(1, 3, subplot_spec=gsp[0:2])
+    violin_gsp = gs.GridSpecFromSubplotSpec(7, 1, subplot_spec=gsp[2], hspace=0.5)
 
-# Create axes within outer gridspec
-v1_1_9_axis = plt.Subplot(fig, raster_gsp[0])
-v2_1_9_axis = plt.Subplot(fig, raster_gsp[1])
-fef_1_9_axis = plt.Subplot(fig, raster_gsp[2])
+    # Create axes within outer gridspec
+    v1_1_9_axis = plt.Subplot(fig, raster_gsp[0])
+    v2_1_9_axis = plt.Subplot(fig, raster_gsp[1])
+    fef_1_9_axis = plt.Subplot(fig, raster_gsp[2])
 
-# Create axes within violin plot gridspec
-rate_1_9_violin_axis = plt.Subplot(fig, violin_gsp[0])
-corr_coeff_1_9_violin_axis = plt.Subplot(fig, violin_gsp[1])
-irregularity_1_9_violin_axis = plt.Subplot(fig, violin_gsp[2])
+    # Create axes within violin plot gridspec
+    rate_1_9_violin_axis = plt.Subplot(fig, violin_gsp[0])
+    corr_coeff_1_9_violin_axis = plt.Subplot(fig, violin_gsp[1])
+    irregularity_1_9_violin_axis = plt.Subplot(fig, violin_gsp[2])
 
-rate_1_9_kl_axis = plt.Subplot(fig, violin_gsp[4])
-corr_coeff_1_9_kl_axis = plt.Subplot(fig, violin_gsp[5])
-irregularity_1_9_kl_axis = plt.Subplot(fig, violin_gsp[6])
+    rate_1_9_kl_axis = plt.Subplot(fig, violin_gsp[4])
+    corr_coeff_1_9_kl_axis = plt.Subplot(fig, violin_gsp[5])
+    irregularity_1_9_kl_axis = plt.Subplot(fig, violin_gsp[6])
 
-# Add axes
-fig.add_subplot(v1_1_9_axis)
-fig.add_subplot(v2_1_9_axis)
-fig.add_subplot(fef_1_9_axis)
-fig.add_subplot(rate_1_9_violin_axis)
-fig.add_subplot(corr_coeff_1_9_violin_axis)
-fig.add_subplot(irregularity_1_9_violin_axis)
-fig.add_subplot(rate_1_9_kl_axis)
-fig.add_subplot(corr_coeff_1_9_kl_axis)
-fig.add_subplot(irregularity_1_9_kl_axis)
+    # Add axes
+    fig.add_subplot(v1_1_9_axis)
+    fig.add_subplot(v2_1_9_axis)
+    fig.add_subplot(fef_1_9_axis)
+    fig.add_subplot(rate_1_9_violin_axis)
+    fig.add_subplot(corr_coeff_1_9_violin_axis)
+    fig.add_subplot(irregularity_1_9_violin_axis)
+    fig.add_subplot(rate_1_9_kl_axis)
+    fig.add_subplot(corr_coeff_1_9_kl_axis)
+    fig.add_subplot(irregularity_1_9_kl_axis)
 
 # Plot example GeNN raster plots
 recordings = np.load(path.join("chi_1_9", "genn_recordings.npz"))
@@ -267,22 +282,26 @@ plt.setp(corr_coeff_1_9_kl_axis.get_xticklabels(), visible=False)
 
 # Show figure legend with devices beneath figure
 pal = sns.color_palette()
-fig.legend([Rectangle((0, 0), 1, 1, fc=pal[0]), Rectangle((0, 0), 1, 1, fc=pal[1])],
-           ["NEST", "GeNN"], ncol=2, frameon=False, bbox_to_anchor=(0.85, 0.525), loc="center")
-fig.legend(kl_actors, ["GeNN vs NEST", "GeNN vs GeNN"],
-           ncol=2, frameon=False, bbox_to_anchor=(0.85, 0.0), loc="lower center")
+stats_fig.legend([Rectangle((0, 0), 1, 1, fc=pal[0]), Rectangle((0, 0), 1, 1, fc=pal[1])],
+                 ["NEST", "GeNN"], ncol=2, frameon=False, loc="lower center" if plot_settings.presentation else  "center",
+                 bbox_to_anchor=(0.3, 0.0) if plot_settings.presentation else (0.85, 0.525))
+stats_fig.legend(kl_actors, ["GeNN vs NEST", "GeNN vs GeNN"],
+                 ncol=2, frameon=False, bbox_to_anchor=(0.85, 0.0), loc="lower center")
 
 # Increase size of markers in spike actors
 excitatory_actor.set_sizes([10])
 inhibitory_actor.set_sizes([10])
 
 # Show second figure legend with inhibitory and excitatory spikes
-fig.legend([excitatory_actor, inhibitory_actor],
-           ["Excitatory", "Inhibitory"], ncol=2, frameon=False, bbox_to_anchor=(0.333, 0.0), loc="lower center")
+spike_fig.legend([excitatory_actor, inhibitory_actor],
+                 ["Excitatory", "Inhibitory"], ncol=2, frameon=False, 
+                 bbox_to_anchor=(0.5 if plot_settings.presentation else 0.333, 0.0), loc="lower center")
 
 
-fig.align_ylabels([rate_1_9_violin_axis, corr_coeff_1_9_violin_axis, irregularity_1_9_violin_axis])
-fig.tight_layout(pad=0, w_pad=2.0, rect= [0.0, 0.05, 1.0, 1.0])
+stats_fig.align_ylabels([rate_1_9_violin_axis, corr_coeff_1_9_violin_axis, irregularity_1_9_violin_axis])
+
+for f in figs:
+    f.tight_layout(pad=0, w_pad=2.0, rect= [0.0, 0.0 if plot_settings.presentation else 0.05, 1.0, 1.0])
 
 if not plot_settings.presentation:
     fig.savefig("../figures/multi_area.pdf", dpi=600)
